@@ -58,7 +58,7 @@
     "aws-cdk": "^2.1029.0",
     "babel-jest": "^30.0.2",
     "cypress": "^14.2.1",
-    "esbuild": "^0.19.2",
+    "esbuild": "^0.25.9",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-cypress": "^3.5.0",
