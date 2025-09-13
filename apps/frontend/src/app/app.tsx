@@ -1,41 +1,23 @@
-import { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { Navigation } from '../components/Navigation';
+import { DateTime } from '../components/DateTime';
+import { BankAccounts } from '../components/BankAccounts';
+import { Transactions } from '../components/Transactions';
 
 export function App() {
-  const [dateTime, setDateTime] = useState<string>('Loading...');
-
-  const fetchDateTime = async () => {
-    try {
-      setDateTime('Loading...');
-      // Note: Replace this URL with your actual API Gateway endpoint after deployment
-      const apiEndpoint = process.env.REACT_APP_API_ENDPOINT || 'https://your-api-gateway-url.com/prod/datetime';
-      
-      const response = await fetch(apiEndpoint);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setDateTime(data.formatted || data.dateTime || 'No date received');
-    } catch (error) {
-      console.error('Error fetching date/time:', error);
-      setDateTime('Error fetching date/time from API');
-    }
+  const appStyle = {
+    minHeight: '100vh',
+    backgroundColor: '#f8fafc'
   };
 
-  useEffect(() => {
-    fetchDateTime();
-  }, []);
-
   return (
-    <div style={{ padding: '20px', textAlign: 'center' }}>
-      <h1>Hello World</h1>
-      <div style={{ marginTop: '20px' }}>
-        <h2>Current Date and Time:</h2>
-        <p style={{ fontSize: '18px', fontWeight: 'bold' }}>{dateTime}</p>
-        <button onClick={fetchDateTime} style={{ marginTop: '10px', padding: '10px 20px' }}>
-          Refresh Date/Time
-        </button>
-      </div>
+    <div style={appStyle}>
+      <Navigation />
+      <Routes>
+        <Route path="/" element={<DateTime />} />
+        <Route path="/accounts" element={<BankAccounts />} />
+        <Route path="/transactions" element={<Transactions />} />
+      </Routes>
     </div>
   );
 }
