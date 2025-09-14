@@ -1,9 +1,8 @@
 /// <reference types='vitest' />
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+const { defineConfig } = require('vite');
+const react = require('@vitejs/plugin-react');
 
-export default defineConfig(() => ({
-  root: __dirname,
+module.exports = defineConfig({
   cacheDir: '../../node_modules/.vite/apps/frontend',
   envDir: '../../',
   server: {
@@ -15,10 +14,6 @@ export default defineConfig(() => ({
     host: 'localhost',
   },
   plugins: [react()],
-  // Uncomment this if you are using workers.
-  // worker: {
-  //  plugins: [ nxViteTsPaths() ],
-  // },
   build: {
     outDir: './dist',
     emptyOutDir: true,
@@ -27,4 +22,4 @@ export default defineConfig(() => ({
       transformMixedEsModules: true,
     },
   },
-}));
+});
