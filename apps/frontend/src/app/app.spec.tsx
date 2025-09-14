@@ -1,7 +1,24 @@
 import { render } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-
 import App from './app';
+
+// Mock the Dashboard component that uses import.meta
+jest.mock('../components/Dashboard', () => ({
+  Dashboard: () => <div data-testid="dashboard">Mocked Dashboard</div>
+}));
+
+jest.mock('../components/BankAccounts', () => ({
+  BankAccounts: () => <div data-testid="bank-accounts">Mocked Bank Accounts</div>
+}));
+
+jest.mock('../components/Categories', () => ({
+  Categories: () => <div data-testid="categories">Mocked Categories</div>
+}));
+
+jest.mock('../components/Transactions', () => ({
+  Transactions: () => <div data-testid="transactions">Mocked Transactions</div>
+}));
+
 
 describe('App', () => {
   it('should render successfully', () => {
@@ -13,14 +30,21 @@ describe('App', () => {
     expect(baseElement).toBeTruthy();
   });
 
-  it('should have a greeting as the title', () => {
-    const { getAllByText } = render(
+  it('should render navigation', () => {
+    const { getByRole } = render(
       <BrowserRouter>
         <App />
       </BrowserRouter>
     );
-    expect(
-      getAllByText(new RegExp('Welcome @budget-app/frontend', 'gi')).length > 0
-    ).toBeTruthy();
+    expect(getByRole('navigation')).toBeTruthy();
+  });
+
+  it('should have dashboard component', () => {
+    const { getByTestId } = render(
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    );
+    expect(getByTestId('dashboard')).toBeTruthy();
   });
 });

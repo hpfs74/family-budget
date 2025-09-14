@@ -3,9 +3,8 @@ import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
-import { dirname, join } from 'path';
 
-const defaultFunctionProps = (name: string): lambda.FunctionProps => {  
+const defaultFunctionProps = (name: string): lambda.NodejsFunctionProps => {  
 
   return {
 
@@ -178,7 +177,7 @@ export class BackendStack extends cdk.Stack {
 
     // API Gateway
     const api = new apigateway.RestApi(this, 'DateTimeApi', {
-      restApiName: 'Budget App DateTime Service',
+      restApiName: 'Budget App Service',
       description: 'API to get current date and time',
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
@@ -209,6 +208,10 @@ export class BackendStack extends cdk.Stack {
     transactionResource.addMethod('GET', transactionsIntegration);
     transactionResource.addMethod('PUT', transactionsIntegration);
     transactionResource.addMethod('DELETE', transactionsIntegration);
+
+    // /transactions/bulkUpdate - POST (bulk update categories)
+    const bulkUpdateResource = transactionsResource.addResource('bulkUpdate');
+    bulkUpdateResource.addMethod('POST', transactionsIntegration);
 
     // Accounts API endpoints
     const accountsIntegration = new apigateway.LambdaIntegration(
