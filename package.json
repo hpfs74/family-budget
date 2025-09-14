@@ -64,7 +64,7 @@
     "@vitejs/plugin-react": "^4.2.0",
     "@vitest/ui": "^3.0.0",
     "autoprefixer": "^10.4.21",
-    "aws-cdk": "^2.1029.0",
+    "aws-cdk": "^2.1029.1",
     "babel-jest": "^30.0.2",
     "cypress": "^14.2.1",
     "esbuild": "^0.25.9",
