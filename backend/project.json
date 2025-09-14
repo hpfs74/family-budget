@@ -1,0 +1,33 @@
+{
+  "name": "@budget-app/backend",
+  "root": "backend",
+  "sourceRoot": "backend/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
+      "defaultConfiguration": "production",
+      "options": {
+        "command": "cd backend && npx esbuild src/main.ts src/accounts-handler.ts src/transactions-handler.ts --bundle --platform=node --format=cjs --outdir=dist --sourcemap",
+        "cwd": "{workspaceRoot}"
+      },
+      "configurations": {
+        "development": {
+          "command": "cd backend && npx esbuild src/main.ts src/accounts-handler.ts src/transactions-handler.ts --bundle --platform=node --format=cjs --outdir=dist --sourcemap"
+        },
+        "production": {
+          "command": "cd backend && npx esbuild src/main.ts src/accounts-handler.ts src/transactions-handler.ts --bundle --platform=node --format=cjs --outdir=dist --minify"
+        }
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "jest --passWithNoTests",
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "tags": []
+}
