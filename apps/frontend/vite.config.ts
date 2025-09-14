@@ -1,10 +1,9 @@
 /// <reference types='vitest' />
-const { defineConfig } = require('vite');
-const react = require('@vitejs/plugin-react');
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-module.exports = defineConfig({
+export default defineConfig({
   cacheDir: '../../node_modules/.vite/apps/frontend',
-  envDir: '../../',
   server: {
     port: 4200,
     host: 'localhost',
@@ -15,11 +14,8 @@ module.exports = defineConfig({
   },
   plugins: [react()],
   build: {
-    outDir: './dist',
+    outDir: 'dist',
     emptyOutDir: true,
     reportCompressedSize: true,
-    commonjsOptions: {
-      transformMixedEsModules: true,
-    },
   },
 });
