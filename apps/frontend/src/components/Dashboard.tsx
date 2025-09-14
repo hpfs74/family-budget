@@ -18,6 +18,7 @@ interface MonthlyData {
 }
 
 interface CategoryData {
+  categoryId: string;
   category: string;
   amount: number;
   percentage: number;
@@ -53,6 +54,7 @@ export function Dashboard() {
       console.error('Error fetching accounts:', err);
     }
   }, [apiEndpoint]);
+
 
   const fetchAnalytics = useCallback(async (accountId: string) => {
     if (!accountId) {
@@ -105,6 +107,7 @@ export function Dashboard() {
     return `${symbol}${Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+
   const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string }) => {
     if (active && payload && payload.length) {
       return (
@@ -141,6 +144,28 @@ export function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">Financial overview and analytics</p>
         </div>
+        {selectedAccount && (
+          <button
+            onClick={() => fetchAnalytics(selectedAccount)}
+            disabled={loading}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          >
+            <svg
+              className={`-ml-1 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        )}
       </div>
 
       {/* Account Selection */}
@@ -305,17 +330,18 @@ export function Dashboard() {
             {/* Category Breakdown Pie Chart */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Spending by Category</h3>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={350}>
                 <PieChart>
                   <Pie
                     data={analytics.categoryBreakdown}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label={({ category, percentage }) => `${category} ${percentage}%`}
-                    outerRadius={80}
+                    labelLine={true}
+                    label={(entry: any) => entry.percentage > 5 ? entry.category : ''}
+                    outerRadius={100}
                     fill="#8884d8"
                     dataKey="amount"
+                    nameKey="category"
                   >
                     {analytics.categoryBreakdown.map((entry, index) => {
                       const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff88', '#ff0088', '#8dd1e1', '#d084d0'];
@@ -324,6 +350,12 @@ export function Dashboard() {
                   </Pie>
                   <Tooltip
                     formatter={(value: number) => [formatCurrency(value), 'Amount']}
+                    labelFormatter={(name: any) => name}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    formatter={(value: any) => value}
                   />
                 </PieChart>
               </ResponsiveContainer>

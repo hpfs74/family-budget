@@ -9,6 +9,7 @@ const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.TABLE_NAME || 'BankTransactions';
+const CATEGORIES_TABLE_NAME = process.env.CATEGORIES_TABLE_NAME || 'Categories';
 
 interface Transaction {
   account: string;
@@ -21,6 +22,14 @@ interface Transaction {
   category: string;
 }
 
+interface Category {
+  categoryId: string;
+  categoryName: string;
+  categoryType: string;
+  description?: string;
+  isActive: boolean;
+}
+
 interface MonthlyData {
   month: string;
   income: number;
@@ -28,6 +37,7 @@ interface MonthlyData {
 }
 
 interface CategoryData {
+  categoryId: string;
   category: string;
   amount: number;
   percentage: number;
@@ -50,6 +60,32 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
 };
+
+async function fetchCategories(): Promise<Map<string, string>> {
+  try {
+    const command = new QueryCommand({
+      TableName: CATEGORIES_TABLE_NAME,
+      KeyConditionExpression: 'categoryType = :type',
+      ExpressionAttributeValues: {
+        ':type': 'expense' // Assuming we want expense categories for analytics
+      }
+    });
+
+    const result = await docClient.send(command);
+    const categoryMap = new Map<string, string>();
+
+    if (result.Items) {
+      result.Items.forEach((item: any) => {
+        categoryMap.set(item.categoryId, item.categoryName);
+      });
+    }
+
+    return categoryMap;
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return new Map<string, string>();
+  }
+}
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
@@ -118,11 +154,14 @@ async function getAnalytics(event: APIGatewayProxyEvent): Promise<APIGatewayProx
   const result = await docClient.send(command);
   const transactions = (result.Items || []) as Transaction[];
 
+  // Fetch category names
+  const categoryMap = await fetchCategories();
+
   // Calculate 12-month trends
   const monthlyTrends = calculateMonthlyTrends(transactions);
 
-  // Calculate category breakdown
-  const categoryBreakdown = calculateCategoryBreakdown(transactions);
+  // Calculate category breakdown with names
+  const categoryBreakdown = calculateCategoryBreakdown(transactions, categoryMap);
 
   // Calculate summary
   const summary = calculateSummary(transactions);
@@ -177,7 +216,7 @@ function calculateMonthlyTrends(transactions: Transaction[]): MonthlyData[] {
   }));
 }
 
-function calculateCategoryBreakdown(transactions: Transaction[]): CategoryData[] {
+function calculateCategoryBreakdown(transactions: Transaction[], categoryMap: Map<string, string>): CategoryData[] {
   const categoryTotals = new Map<string, number>();
   let totalExpenses = 0;
 
@@ -191,9 +230,10 @@ function calculateCategoryBreakdown(transactions: Transaction[]): CategoryData[]
     }
   });
 
-  // Convert to array with percentages
-  const breakdown = Array.from(categoryTotals.entries()).map(([category, amount]) => ({
-    category,
+  // Convert to array with percentages and proper category names
+  const breakdown = Array.from(categoryTotals.entries()).map(([categoryId, amount]) => ({
+    categoryId,
+    category: categoryMap.get(categoryId) || categoryId, // Use category name from map, fallback to ID
     amount: Math.round(amount * 100) / 100,
     percentage: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 10000) / 100 : 0
   }));
