@@ -6,7 +6,8 @@ import {
   GetCommand,
   UpdateCommand,
   DeleteCommand,
-  QueryCommand
+  QueryCommand,
+  BatchWriteCommand
 } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -49,6 +50,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       case 'POST':
         if (path === '/transactions') {
           return await createTransaction(event);
+        } else if (path === '/transactions/bulkUpdate') {
+          return await bulkUpdateTransactions(event);
         }
         break;
 
@@ -246,21 +249,12 @@ async function getTransaction(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
 async function updateTransaction(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   const pathParams = event.pathParameters;
-  const queryParams = event.queryStringParameters || {};
 
   if (!pathParams?.transactionId) {
     return {
       statusCode: 400,
       headers: corsHeaders,
       body: JSON.stringify({ error: 'transactionId is required' })
-    };
-  }
-
-  if (!queryParams.account) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'account is required' })
     };
   }
 
@@ -301,7 +295,7 @@ async function updateTransaction(event: APIGatewayProxyEvent): Promise<APIGatewa
   const result = await docClient.send(new UpdateCommand({
     TableName: TABLE_NAME,
     Key: {
-      account: queryParams.account,
+      account: updates.account,
       transactionId: pathParams.transactionId
     },
     UpdateExpression: `SET ${updateExpressions.join(', ')}`,
@@ -342,4 +336,105 @@ async function deleteTransaction(event: APIGatewayProxyEvent): Promise<APIGatewa
     headers: corsHeaders,
     body: ''
   };
+}
+
+async function bulkUpdateTransactions(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  if (!event.body) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Request body is required' })
+    };
+  }
+
+  const { account, description, newCategory } = JSON.parse(event.body);
+
+  if (!account || !description || !newCategory) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'account, description, and newCategory are required' })
+    };
+  }
+
+  try {
+    // Query all transactions for the account
+    const queryResult = await docClient.send(new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: 'account = :account',
+      ExpressionAttributeValues: {
+        ':account': account
+      }
+    }));
+
+    if (!queryResult.Items || queryResult.Items.length === 0) {
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          message: 'No transactions found for this account',
+          updatedCount: 0
+        })
+      };
+    }
+
+    // Filter transactions with matching description
+    const matchingTransactions = queryResult.Items.filter(
+      item => item.description === description
+    );
+
+    if (matchingTransactions.length === 0) {
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          message: 'No transactions found with matching description',
+          updatedCount: 0
+        })
+      };
+    }
+
+    // Update transactions in batches (DynamoDB BatchWrite limit is 25 items)
+    const batchSize = 25;
+    let totalUpdated = 0;
+
+    for (let i = 0; i < matchingTransactions.length; i += batchSize) {
+      const batch = matchingTransactions.slice(i, i + batchSize);
+
+      const writeRequests = batch.map(transaction => ({
+        PutRequest: {
+          Item: {
+            ...transaction,
+            category: newCategory,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      }));
+
+      await docClient.send(new BatchWriteCommand({
+        RequestItems: {
+          [TABLE_NAME]: writeRequests
+        }
+      }));
+
+      totalUpdated += batch.length;
+    }
+
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        message: `Successfully updated ${totalUpdated} transactions`,
+        updatedCount: totalUpdated
+      })
+    };
+
+  } catch (error) {
+    console.error('Error in bulk update:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Failed to bulk update transactions' })
+    };
+  }
 }

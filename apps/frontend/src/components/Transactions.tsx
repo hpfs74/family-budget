@@ -128,19 +128,53 @@ export function Transactions() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const url = editingTransaction
-        ? `${apiEndpoint}transactions/${editingTransaction.transactionId}`
-        : `${apiEndpoint}transactions`;
+      // Check if we're editing a transaction and the category has changed
+      const isCategoryChanged = editingTransaction &&
+        editingTransaction.category !== formData.category;
 
-      const method = editingTransaction ? 'PUT' : 'POST';
+      let shouldBulkUpdate = false;
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
+      if (isCategoryChanged) {
+        shouldBulkUpdate = window.confirm(
+          `Do you want to update the category to "${getCategoryName(formData.category)}" for all transactions with the description "${editingTransaction.description}"?`
+        );
+      }
 
-      if (!response.ok) throw new Error('Failed to save transaction');
+      // If bulk update is requested, call the bulk update endpoint
+      if (shouldBulkUpdate && editingTransaction) {
+        const bulkResponse = await fetch(`${apiEndpoint}transactions/bulkUpdate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            account: editingTransaction.account,
+            description: editingTransaction.description,
+            newCategory: formData.category
+          })
+        });
+
+        if (!bulkResponse.ok) {
+          const errorData = await bulkResponse.json();
+          throw new Error(errorData.error || 'Failed to bulk update transactions');
+        }
+
+        const bulkResult = await bulkResponse.json();
+        alert(`Successfully updated ${bulkResult.updatedCount} transactions!`);
+      } else {
+        // Regular single transaction update or creation
+        const url = editingTransaction
+          ? `${apiEndpoint}transactions/${editingTransaction.transactionId}`
+          : `${apiEndpoint}transactions`;
+
+        const method = editingTransaction ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) throw new Error('Failed to save transaction');
+      }
 
       await fetchTransactions(selectedAccount);
       setShowForm(false);
