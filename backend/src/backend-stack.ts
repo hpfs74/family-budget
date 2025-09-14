@@ -3,7 +3,6 @@ import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
-import { dirname, join } from 'path';
 
 const defaultFunctionProps = (name: string): lambda.FunctionProps => {  
 

@@ -14,7 +14,7 @@
     "cdk:deploy": "cdk deploy",
     "cdk:destroy": "cdk destroy",
     "cdk:bootstrap": "cdk bootstrap",
-    "lint": "nx lint",
+    "lint": "nx run-many -t lint",
     "lint:frontend": "nx lint frontend",
     "lint:backend": "nx lint backend"
   },
