@@ -17,8 +17,12 @@
           "format": [
             "cjs"
           ],
-          "bundle": false,
+          "bundle": true,
           "main": "backend/src/main.ts",
+          "additionalEntryPoints": [
+            "src/accounts-handler.ts",
+            "src/transactions-handler.ts"
+          ],
           "tsConfig": "backend/tsconfig.app.json",
           "assets": [
             "backend/src/assets"
@@ -103,5 +107,15 @@
       }
     }
   },
-  "dependencies": {}
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.696.0",
+    "@aws-sdk/lib-dynamodb": "^3.696.0",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.152",
+    "@types/node": "^18.19.64",
+    "@types/uuid": "^10.0.0",
+    "typescript": "~5.9.2"
+  }
 }

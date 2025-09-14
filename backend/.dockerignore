@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-docker
+*.log
+.git
+.DS_Store
+coverage
+.nyc_output
+Dockerfile*
+build-docker.sh

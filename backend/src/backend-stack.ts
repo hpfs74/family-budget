@@ -1,37 +1,68 @@
 import * as cdk from 'aws-cdk-lib';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
+import { dirname, join } from 'path';
+
+const defaultFunctionProps = (name: string): lambda.FunctionProps => {  
+
+  return {
+
+    handler: `handler`,
+    entry: `backend/src/assets/lambdas/${name}.ts`,
+    bundling: {
+      minify: true,
+      loader: {'.node': 'file'},
+      sourceMap: true,
+    },
+
+    // code: lambda.Code.fromAsset('backend', {
+    //   bundling: {
+    //     image: lambda.Runtime.NODEJS_18_X.bundlingImage,
+    //     command: [
+    //       'bash', '-c', [
+    //         'npm install',
+    //         'npx tsc src/accounts-handler.ts src/transactions-handler.ts --outDir /asset-output --target ES2020 --module CommonJS --esModuleInterop --skipLibCheck',
+    //         'cp -r node_modules /asset-output/'
+    //       ].join(' && ')
+    //     ],
+    //     user: 'root',
+    //   },
+    // }),
+
+    timeout: cdk.Duration.seconds(30),
+  };
+};
 
 export class BackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     // Lambda function that returns current date and time
-    const dateTimeLambda = new lambda.Function(this, 'DateTimeFunction', {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        exports.handler = async (event) => {
-          const now = new Date();
-          return {
-            statusCode: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Headers': 'Content-Type',
-              'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
-            },
-            body: JSON.stringify({
-              dateTime: now.toISOString(),
-              timestamp: now.getTime(),
-              formatted: now.toLocaleString()
-            })
-          };
-        };
-      `),
-    });
+    // const dateTimeLambda = new lambda.Function(this, 'DateTimeFunction', {
+      
+    //   handler: 'index.handler',
+    //   code: lambda.Code.fromInline(`
+    //     exports.handler = async (event) => {
+    //       const now = new Date();
+    //       return {
+    //         statusCode: 200,
+    //         headers: {
+    //           'Content-Type': 'application/json',
+    //           'Access-Control-Allow-Origin': '*',
+    //           'Access-Control-Allow-Headers': 'Content-Type',
+    //           'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+    //         },
+    //         body: JSON.stringify({
+    //           dateTime: now.toISOString(),
+    //           timestamp: now.getTime(),
+    //           formatted: now.toLocaleString()
+    //         })
+    //       };
+    //     };
+    //   `),
+    // });
 
     // DynamoDB table for bank transactions
     const transactionsTable = new dynamodb.Table(this, 'TransactionsTable', {
@@ -85,33 +116,65 @@ export class BackendStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
-    // Lambda function for transactions CRUD operations
-    const transactionsLambda = new lambda.Function(this, 'TransactionsFunction', {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'transactions-handler.handler',
-      code: lambda.Code.fromAsset('backend/src'),
-      environment: {
-        TABLE_NAME: transactionsTable.tableName,
+    // DynamoDB table for categories
+    const categoriesTable = new dynamodb.Table(this, 'CategoriesTable', {
+      tableName: 'Categories',
+      partitionKey: {
+        name: 'categoryId',
+        type: dynamodb.AttributeType.STRING,
       },
-      timeout: cdk.Duration.seconds(30),
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      pointInTimeRecovery: true,
     });
+
+    // Lambda function for transactions CRUD operations
+    const transactionsLambda = new lambda.NodejsFunction(
+      this,
+      'TransactionsFunction',
+      {
+        ...defaultFunctionProps('transactions-handler'),
+        environment: {
+          TABLE_NAME: transactionsTable.tableName,
+        },
+      }
+    );
 
     // Grant DynamoDB permissions to Lambda
     transactionsTable.grantReadWriteData(transactionsLambda);
 
     // Lambda function for accounts CRUD operations
-    const accountsLambda = new lambda.Function(this, 'AccountsFunction', {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'accounts-handler.handler',
-      code: lambda.Code.fromAsset('backend/src'),
+    const accountsLambda = new lambda.NodejsFunction(this, 'AccountsFunction', {
+      ...defaultFunctionProps('accounts-handler'),      
       environment: {
         TABLE_NAME: accountsTable.tableName,
       },
-      timeout: cdk.Duration.seconds(30),
     });
 
     // Grant DynamoDB permissions to accounts Lambda
     accountsTable.grantReadWriteData(accountsLambda);
+
+    // Lambda function for categories CRUD operations
+    const categoriesLambda = new lambda.NodejsFunction(this, 'CategoriesFunction', {
+      ...defaultFunctionProps('categories-handler'),
+      environment: {
+        TABLE_NAME: categoriesTable.tableName,
+      },
+    });
+
+    // Grant DynamoDB permissions to categories Lambda
+    categoriesTable.grantReadWriteData(categoriesLambda);
+
+    // Lambda function for analytics
+    const analyticsLambda = new lambda.NodejsFunction(this, 'AnalyticsFunction', {
+      ...defaultFunctionProps('analytics-handler'),
+      environment: {
+        TABLE_NAME: transactionsTable.tableName,
+      },
+    });
+
+    // Grant DynamoDB read permissions to analytics Lambda
+    transactionsTable.grantReadData(analyticsLambda);
 
     // API Gateway
     const api = new apigateway.RestApi(this, 'DateTimeApi', {
@@ -125,11 +188,15 @@ export class BackendStack extends cdk.Stack {
     });
 
     // API Gateway integration with Lambda
-    const dateTimeIntegration = new apigateway.LambdaIntegration(dateTimeLambda);
-    api.root.addResource('datetime').addMethod('GET', dateTimeIntegration);
+    // const dateTimeIntegration = new apigateway.LambdaIntegration(
+    //   dateTimeLambda
+    // );
+    // api.root.addResource('datetime').addMethod('GET', dateTimeIntegration);
 
     // Transactions API endpoints
-    const transactionsIntegration = new apigateway.LambdaIntegration(transactionsLambda);
+    const transactionsIntegration = new apigateway.LambdaIntegration(
+      transactionsLambda
+    );
     const transactionsResource = api.root.addResource('transactions');
 
     // /transactions - GET (list), POST (create)
@@ -137,13 +204,16 @@ export class BackendStack extends cdk.Stack {
     transactionsResource.addMethod('POST', transactionsIntegration);
 
     // /transactions/{transactionId} - GET (read), PUT (update), DELETE
-    const transactionResource = transactionsResource.addResource('{transactionId}');
+    const transactionResource =
+      transactionsResource.addResource('{transactionId}');
     transactionResource.addMethod('GET', transactionsIntegration);
     transactionResource.addMethod('PUT', transactionsIntegration);
     transactionResource.addMethod('DELETE', transactionsIntegration);
 
     // Accounts API endpoints
-    const accountsIntegration = new apigateway.LambdaIntegration(accountsLambda);
+    const accountsIntegration = new apigateway.LambdaIntegration(
+      accountsLambda
+    );
     const accountsResource = api.root.addResource('accounts');
 
     // /accounts - GET (list), POST (create)
@@ -155,6 +225,31 @@ export class BackendStack extends cdk.Stack {
     accountResource.addMethod('GET', accountsIntegration);
     accountResource.addMethod('PUT', accountsIntegration);
     accountResource.addMethod('DELETE', accountsIntegration);
+
+    // Categories API endpoints
+    const categoriesIntegration = new apigateway.LambdaIntegration(
+      categoriesLambda
+    );
+    const categoriesResource = api.root.addResource('categories');
+
+    // /categories - GET (list), POST (create)
+    categoriesResource.addMethod('GET', categoriesIntegration);
+    categoriesResource.addMethod('POST', categoriesIntegration);
+
+    // /categories/{categoryId} - GET (read), PUT (update), DELETE
+    const categoryResource = categoriesResource.addResource('{categoryId}');
+    categoryResource.addMethod('GET', categoriesIntegration);
+    categoryResource.addMethod('PUT', categoriesIntegration);
+    categoryResource.addMethod('DELETE', categoriesIntegration);
+
+    // Analytics API endpoints
+    const analyticsIntegration = new apigateway.LambdaIntegration(
+      analyticsLambda
+    );
+    const analyticsResource = api.root.addResource('analytics');
+
+    // /analytics - GET (get analytics data)
+    analyticsResource.addMethod('GET', analyticsIntegration);
 
     // Output the API endpoint
     new cdk.CfnOutput(this, 'ApiEndpoint', {
@@ -171,6 +266,11 @@ export class BackendStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'AccountsTableName', {
       value: accountsTable.tableName,
       description: 'DynamoDB table name for bank accounts',
+    });
+
+    new cdk.CfnOutput(this, 'CategoriesTableName', {
+      value: categoriesTable.tableName,
+      description: 'DynamoDB table name for categories',
     });
   }
 }

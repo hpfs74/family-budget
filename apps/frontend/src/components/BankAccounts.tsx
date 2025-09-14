@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface BankAccount {
   accountId: string;
@@ -33,7 +33,7 @@ export function BankAccounts() {
 
   const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || 'https://your-api-gateway-url.com/prod/';
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${apiEndpoint}accounts`);
@@ -46,7 +46,7 @@ export function BankAccounts() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiEndpoint]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,14 +90,14 @@ export function BankAccounts() {
       bankName: account.bankName,
       accountType: account.accountType,
       currency: account.currency,
-      balance: account.balance,
+      balance: account.balance || 0,
       isActive: account.isActive
     });
     setShowForm(true);
   };
 
   const handleDelete = async (accountId: string) => {
-    if (!confirm('Are you sure you want to delete this account?')) return;
+    if (!window.confirm('Are you sure you want to delete this account?')) return;
 
     try {
       const response = await fetch(`${apiEndpoint}accounts/${accountId}`, {
@@ -120,280 +120,276 @@ export function BankAccounts() {
     }));
   };
 
+  const formatBalance = (balance: number | undefined, currency: string) => {
+    if (balance === undefined) return 'N/A';
+    const symbol = currency === 'GBP' ? '£' : '€';
+    const color = balance >= 0 ? 'text-green-600' : 'text-red-600';
+    return (
+      <span className={`font-semibold ${color}`}>
+        {symbol}{balance.toFixed(2)}
+      </span>
+    );
+  };
+
+  const getAccountTypeColor = (type: string) => {
+    const colors = {
+      CHECKING: 'bg-blue-100 text-blue-800',
+      SAVINGS: 'bg-green-100 text-green-800',
+      CREDIT: 'bg-orange-100 text-orange-800',
+      INVESTMENT: 'bg-purple-100 text-purple-800'
+    };
+    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
   useEffect(() => {
     fetchAccounts();
-  }, []);
+  }, [fetchAccounts]);
 
-  const containerStyle = {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '0 1rem'
-  };
-
-  const headerStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '2rem'
-  };
-
-  const buttonStyle = {
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    padding: '0.5rem 1rem',
-    borderRadius: '0.375rem',
-    cursor: 'pointer',
-    fontSize: '0.875rem'
-  };
-
-  const dangerButtonStyle = {
-    ...buttonStyle,
-    backgroundColor: '#ef4444'
-  };
-
-  const formStyle = {
-    backgroundColor: '#f9fafb',
-    padding: '1.5rem',
-    borderRadius: '0.5rem',
-    marginBottom: '2rem'
-  };
-
-  const inputStyle = {
-    width: '100%',
-    padding: '0.5rem',
-    border: '1px solid #d1d5db',
-    borderRadius: '0.375rem',
-    fontSize: '0.875rem'
-  };
-
-  const tableStyle = {
-    width: '100%',
-    borderCollapse: 'collapse' as const,
-    backgroundColor: 'white',
-    borderRadius: '0.5rem',
-    overflow: 'hidden',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-  };
-
-  const thStyle = {
-    backgroundColor: '#f3f4f6',
-    padding: '0.75rem',
-    textAlign: 'left' as const,
-    fontWeight: '600',
-    borderBottom: '1px solid #e5e7eb'
-  };
-
-  const tdStyle = {
-    padding: '0.75rem',
-    borderBottom: '1px solid #e5e7eb'
-  };
-
-  if (loading) return <div style={containerStyle}>Loading...</div>;
+  if (loading) return (
+    <div className="max-w-7xl mx-auto px-4">
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-lg text-gray-600">Loading accounts...</span>
+      </div>
+    </div>
+  );
 
   return (
-    <div style={containerStyle}>
-      <div style={headerStyle}>
-        <h1>Bank Accounts</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Bank Accounts</h1>
+          <p className="text-gray-600 mt-1">Manage your banking accounts and balances</p>
+        </div>
         <button
-          style={buttonStyle}
           onClick={() => setShowForm(!showForm)}
+          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
-          {showForm ? 'Cancel' : 'Add Account'}
+          {showForm ? '✕ Cancel' : '+ Add Account'}
         </button>
       </div>
 
       {error && (
-        <div style={{
-          backgroundColor: '#fef2f2',
-          color: '#dc2626',
-          padding: '1rem',
-          borderRadius: '0.375rem',
-          marginBottom: '1rem'
-        }}>
-          {error}
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <div className="text-red-400">
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-red-800">{error}</p>
+            </div>
+          </div>
         </div>
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} style={formStyle}>
-          <h2>{editingAccount ? 'Edit Account' : 'Add New Account'}</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Account Name:
+        <div className="mb-8 bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            {editingAccount ? 'Edit Account' : 'Add New Account'}
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Name
+                </label>
                 <input
                   type="text"
                   name="accountName"
                   value={formData.accountName}
                   onChange={handleInputChange}
                   required
-                  style={inputStyle}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                  placeholder="My Checking Account"
                 />
-              </label>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Account Number:
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Number
+                </label>
                 <input
                   type="text"
                   name="accountNumber"
                   value={formData.accountNumber}
                   onChange={handleInputChange}
                   required
-                  style={inputStyle}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                  placeholder="1234567890"
                 />
-              </label>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Bank Name:
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bank Name
+                </label>
                 <input
                   type="text"
                   name="bankName"
                   value={formData.bankName}
                   onChange={handleInputChange}
                   required
-                  style={inputStyle}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                  placeholder="Bank of Example"
                 />
-              </label>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Account Type:
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Type
+                </label>
                 <select
                   name="accountType"
                   value={formData.accountType}
                   onChange={handleInputChange}
-                  style={inputStyle}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                 >
                   <option value="CHECKING">Checking</option>
                   <option value="SAVINGS">Savings</option>
                   <option value="CREDIT">Credit</option>
                   <option value="INVESTMENT">Investment</option>
                 </select>
-              </label>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Currency:
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Currency
+                </label>
                 <select
                   name="currency"
                   value={formData.currency}
                   onChange={handleInputChange}
-                  style={inputStyle}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                 >
-                  <option value="GBP">GBP</option>
-                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="EUR">EUR (€)</option>
                 </select>
-              </label>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Balance:
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Initial Balance
+                </label>
                 <input
                   type="number"
                   step="0.01"
                   name="balance"
                   value={formData.balance}
                   onChange={handleInputChange}
-                  style={inputStyle}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                  placeholder="0.00"
                 />
-              </label>
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={formData.isActive}
-                  onChange={handleInputChange}
-                />
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                name="isActive"
+                checked={formData.isActive}
+                onChange={handleInputChange}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label className="ml-2 block text-sm font-medium text-gray-700">
                 Active Account
               </label>
             </div>
-          </div>
-          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-            <button type="submit" style={buttonStyle}>
-              {editingAccount ? 'Update Account' : 'Create Account'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowForm(false);
-                setEditingAccount(null);
-              }}
-              style={{ ...buttonStyle, backgroundColor: '#6b7280' }}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                {editingAccount ? 'Update Account' : 'Create Account'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingAccount(null);
+                }}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium py-2 px-6 rounded-lg transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
-      <table style={tableStyle}>
-        <thead>
-          <tr>
-            <th style={thStyle}>Account Name</th>
-            <th style={thStyle}>Account Number</th>
-            <th style={thStyle}>Bank</th>
-            <th style={thStyle}>Type</th>
-            <th style={thStyle}>Currency</th>
-            <th style={thStyle}>Balance</th>
-            <th style={thStyle}>Status</th>
-            <th style={thStyle}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {accounts.length === 0 ? (
-            <tr>
-              <td colSpan={8} style={{ ...tdStyle, textAlign: 'center', color: '#6b7280' }}>
-                No accounts found. Create your first account!
-              </td>
-            </tr>
-          ) : (
-            accounts.map((account) => (
-              <tr key={account.accountId}>
-                <td style={tdStyle}>{account.accountName}</td>
-                <td style={tdStyle}>{account.accountNumber}</td>
-                <td style={tdStyle}>{account.bankName}</td>
-                <td style={tdStyle}>{account.accountType}</td>
-                <td style={tdStyle}>{account.currency}</td>
-                <td style={tdStyle}>
-                  {account.balance !== undefined ? `${account.balance.toFixed(2)}` : 'N/A'}
-                </td>
-                <td style={tdStyle}>
-                  <span style={{
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.75rem',
-                    backgroundColor: account.isActive ? '#d1fae5' : '#fee2e2',
-                    color: account.isActive ? '#065f46' : '#991b1b'
-                  }}>
-                    {account.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td style={tdStyle}>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      onClick={() => handleEdit(account)}
-                      style={{ ...buttonStyle, fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(account.accountId)}
-                      style={{ ...dangerButtonStyle, fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
+      {accounts.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="w-24 h-24 mx-auto mb-4 text-gray-300">
+            <svg fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No accounts found</h3>
+          <p className="text-gray-500">Get started by creating your first bank account!</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {accounts.map((account) => (
+                <tr key={account.accountId} className="hover:bg-gray-50 transition-colors duration-200">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{account.accountName}</div>
+                      <div className="text-sm text-gray-500">{account.bankName}</div>
+                      <div className="text-xs text-gray-400">****{account.accountNumber.slice(-4)}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getAccountTypeColor(account.accountType)}`}>
+                      {account.accountType}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {formatBalance(account.balance, account.currency)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      account.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {account.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => handleEdit(account)}
+                        className="text-blue-600 hover:text-blue-900 font-medium transition duration-200"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(account.accountId)}
+                        className="text-red-600 hover:text-red-900 font-medium transition duration-200"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

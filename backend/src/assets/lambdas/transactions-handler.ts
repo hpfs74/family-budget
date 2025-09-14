@@ -197,7 +197,7 @@ async function getTransactions(event: APIGatewayProxyEvent): Promise<APIGatewayP
     });
   }
 
-  const result = await docClient.send(command) as any;
+  const result = await docClient.send(command);
 
   return {
     statusCode: 200,
@@ -248,11 +248,27 @@ async function updateTransaction(event: APIGatewayProxyEvent): Promise<APIGatewa
   const pathParams = event.pathParameters;
   const queryParams = event.queryStringParameters || {};
 
-  if (!pathParams?.transactionId || !queryParams.account || !event.body) {
+  if (!pathParams?.transactionId) {
     return {
       statusCode: 400,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'transactionId, account, and request body are required' })
+      body: JSON.stringify({ error: 'transactionId is required' })
+    };
+  }
+
+  if (!queryParams.account) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'account is required' })
+    };
+  }
+
+  if (!event.body) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'request body is required' })
     };
   }
 
