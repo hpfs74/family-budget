@@ -4,7 +4,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 
-const defaultFunctionProps = (name: string): lambda.FunctionProps => {  
+const defaultFunctionProps = (name: string): lambda.NodejsFunctionProps => {  
 
   return {
 

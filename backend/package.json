@@ -13,19 +13,19 @@
         "defaultConfiguration": "production",
         "options": {
           "platform": "node",
-          "outputPath": "backend/dist",
+          "outputPath": "dist",
           "format": [
             "cjs"
           ],
           "bundle": true,
-          "main": "backend/src/main.ts",
+          "main": "src/main.ts",
           "additionalEntryPoints": [
             "src/accounts-handler.ts",
             "src/transactions-handler.ts"
           ],
-          "tsConfig": "backend/tsconfig.app.json",
+          "tsConfig": "tsconfig.app.json",
           "assets": [
-            "backend/src/assets"
+            "src/assets"
           ],
           "esbuildOptions": {
             "sourcemap": true,
