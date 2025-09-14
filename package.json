@@ -6,7 +6,7 @@
     "build": "nx build frontend",
     "build:backend": "nx build backend",
     "serve": "nx serve frontend",
-    "test": "nx test",
+    "test": "nx run-many -t test",
     "test:frontend": "nx test frontend",
     "test:backend": "nx test backend",
     "cdk:synth": "cdk synth",

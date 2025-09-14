@@ -51,6 +51,7 @@
     },
     {
       "plugin": "@nx/vite/plugin",
+      "exclude": ["apps/frontend/**/*"],
       "options": {
         "buildTargetName": "build",
         "testTargetName": "test",
