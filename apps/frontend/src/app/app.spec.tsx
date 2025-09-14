@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import App from './app';
 
 // Mock the Dashboard component that uses import.meta
 jest.mock('../components/Dashboard', () => ({
@@ -18,7 +19,6 @@ jest.mock('../components/Transactions', () => ({
   Transactions: () => <div data-testid="transactions">Mocked Transactions</div>
 }));
 
-import App from './app';
 
 describe('App', () => {
   it('should render successfully', () => {
