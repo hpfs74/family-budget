@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Papa from 'papaparse';
+import { TransactionModal } from './TransactionModal';
 
 interface Transaction {
   transactionId: string;
@@ -55,7 +56,7 @@ export function Transactions() {
   const [loading] = useState(false);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [error, setError] = useState<string>('');
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -69,15 +70,6 @@ export function Transactions() {
     processed: 0,
     errors: [],
     isImporting: false
-  });
-  const [formData, setFormData] = useState<TransactionFormData>({
-    account: '',
-    date: new Date().toISOString().split('T')[0],
-    description: '',
-    currency: 'GBP',
-    amount: 0,
-    fee: 0,
-    category: ''
   });
 
   const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || 'https://your-api-gateway-url.com/prod/';
@@ -125,21 +117,8 @@ export function Transactions() {
     }
   }, [apiEndpoint]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveTransaction = async (formData: TransactionFormData, editingTransaction: Transaction | null, shouldBulkUpdate: boolean) => {
     try {
-      // Check if we're editing a transaction and the category has changed
-      const isCategoryChanged = editingTransaction &&
-        editingTransaction.category !== formData.category;
-
-      let shouldBulkUpdate = false;
-
-      if (isCategoryChanged) {
-        shouldBulkUpdate = window.confirm(
-          `Do you want to update the category to "${getCategoryName(formData.category)}" for all transactions with the description "${editingTransaction.description}"?`
-        );
-      }
-
       // If bulk update is requested, call the bulk update endpoint
       if (shouldBulkUpdate && editingTransaction) {
         const bulkResponse = await fetch(`${apiEndpoint}transactions/bulkUpdate`, {
@@ -177,44 +156,21 @@ export function Transactions() {
       }
 
       await fetchTransactions(selectedAccount);
-      setShowForm(false);
       setEditingTransaction(null);
-      setFormData({
-        account: '',
-        date: new Date().toISOString().split('T')[0],
-        description: '',
-        currency: 'GBP',
-        amount: 0,
-        fee: 0,
-        category: ''
-      });
     } catch (err) {
       setError('Error saving transaction: ' + (err as Error).message);
+      throw err;
     }
   };
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
-    setFormData({
-      account: transaction.account,
-      date: transaction.date,
-      description: transaction.description,
-      currency: transaction.currency,
-      amount: transaction.amount,
-      fee: transaction.fee,
-      category: transaction.category
-    });
-    setShowForm(true);
+    setShowModal(true);
   };
 
   const handleAddTransaction = () => {
-    if (selectedAccount) {
-      setFormData(prev => ({
-        ...prev,
-        account: selectedAccount
-      }));
-    }
-    setShowForm(true);
+    setEditingTransaction(null);
+    setShowModal(true);
   };
 
   const handleDelete = async (transactionId: string) => {
@@ -231,13 +187,6 @@ export function Transactions() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'number' ? parseFloat(value) || 0 : value
-    }));
-  };
 
   const getAccountName = (accountId: string) => {
     const account = accounts.find(acc => acc.accountId === accountId);
@@ -477,11 +426,11 @@ export function Transactions() {
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <button
-            onClick={() => showForm ? setShowForm(false) : handleAddTransaction()}
+            onClick={handleAddTransaction}
             disabled={!selectedAccount}
             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
-            {showForm ? '✕ Cancel' : '+ Add Transaction'}
+            + Add Transaction
           </button>
           <button
             onClick={() => setShowImport(!showImport)}
@@ -626,152 +575,6 @@ export function Transactions() {
         </div>
       )}
 
-      {showForm && (
-        <div className="mb-8 bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            {editingTransaction ? 'Edit Transaction' : 'Add New Transaction'}
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Account
-                </label>
-                <select
-                  name="account"
-                  value={formData.account}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                >
-                  <option value="">Select Account</option>
-                  {accounts.filter(acc => acc.isActive).map(account => (
-                    <option key={account.accountId} value={account.accountId}>
-                      {account.accountName} ({account.currency})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
-                </label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                >
-                  <option value="">Select Category</option>
-                  {categories.map(category => (
-                    <option key={category.categoryId} value={category.categoryId}>
-                      {category.icon} {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Currency
-                </label>
-                <select
-                  name="currency"
-                  value={formData.currency}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                >
-                  <option value="GBP">GBP (£)</option>
-                  <option value="EUR">EUR (€)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Amount
-                  <span className="text-xs text-gray-500 ml-1">(negative for expenses)</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="amount"
-                  value={formData.amount}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fee
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="fee"
-                  value={formData.fee}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                required
-                placeholder="Transaction description..."
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 resize-vertical"
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                {editingTransaction ? 'Update Transaction' : 'Create Transaction'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingTransaction(null);
-                }}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium py-2 px-6 rounded-lg transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {!selectedAccount ? (
         <div className="text-center py-12">
@@ -882,6 +685,19 @@ export function Transactions() {
           </div>
         </div>
       )}
+
+      <TransactionModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setEditingTransaction(null);
+        }}
+        onSave={handleSaveTransaction}
+        editingTransaction={editingTransaction}
+        accounts={accounts}
+        categories={categories}
+        selectedAccount={selectedAccount}
+      />
     </div>
   );
 }
