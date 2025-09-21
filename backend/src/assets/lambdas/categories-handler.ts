@@ -10,6 +10,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 import AWSXRay from 'aws-xray-sdk-core';
+import log from 'lambda-log';
 
 // Capture AWS SDK calls with X-Ray
 const client = AWSXRay.captureAWSv3Client(new DynamoDBClient({}));
@@ -89,7 +90,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
 
   } catch (error) {
-    console.error('Error:', error);
+    log.error('Categories handler error:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return {
       statusCode: 500,
       headers: corsHeaders,

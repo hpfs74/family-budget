@@ -10,6 +10,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 import AWSXRay from 'aws-xray-sdk-core';
+import log from 'lambda-log';
 
 // Capture AWS SDK calls with X-Ray
 const client = AWSXRay.captureAWSv3Client(new DynamoDBClient({}));
@@ -96,7 +97,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
 
   } catch (error) {
-    console.error('Error:', error);
+    log.error('Handler error:', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     return {
       statusCode: 500,
       headers: corsHeaders,
@@ -432,7 +433,7 @@ async function createTransfer(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       })
     };
   } catch (error) {
-    console.error('Error creating transfer:', error);
+    log.error('Error creating transfer:', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     return {
       statusCode: 500,
       headers: corsHeaders,
@@ -445,9 +446,11 @@ async function convertTransactionToTransfer(event: APIGatewayProxyEvent): Promis
   const pathParams = event.pathParameters;
   const queryParams = event.queryStringParameters || {};
 
-  console.log('Convert to transfer - pathParams:', pathParams);
-  console.log('Convert to transfer - queryParams:', queryParams);
-  console.log('Convert to transfer - body:', event.body);
+  log.debug('Convert to transfer request:', {
+    pathParams,
+    queryParams,
+    hasBody: !!event.body
+  });
 
   if (!pathParams?.transactionId || !queryParams.account || !event.body) {
     return {
@@ -471,7 +474,10 @@ async function convertTransactionToTransfer(event: APIGatewayProxyEvent): Promis
   } catch (err: unknown) {
     const error = err as Error;
 
-    console.error('Invalid JSON in request body', {reason: error.message, stack: error.stack});
+    log.error('Invalid JSON in request body:', {
+      reason: error.message,
+      stack: error.stack
+    });
 
     return {
       statusCode: 400,
@@ -507,8 +513,13 @@ async function convertTransactionToTransfer(event: APIGatewayProxyEvent): Promis
       account: accountKey,
       transactionId: transactionIdKey
     };
-    console.log('Getting transaction with key:', getKey);
-    console.log('Key types:', typeof accountKey, typeof transactionIdKey);
+    log.debug('Getting transaction:', {
+      key: getKey,
+      keyTypes: {
+        account: typeof accountKey,
+        transactionId: typeof transactionIdKey
+      }
+    });
 
     const getResult = await docClient.send(new GetCommand({
       TableName: TABLE_NAME,
@@ -592,7 +603,10 @@ async function convertTransactionToTransfer(event: APIGatewayProxyEvent): Promis
       })
     };
   } catch (error) {
-    console.error('Error converting transaction to transfer:', error);
+    log.error('Error converting transaction to transfer:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return {
       statusCode: 500,
       headers: corsHeaders,
