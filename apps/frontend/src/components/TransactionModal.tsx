@@ -11,6 +11,9 @@ interface Transaction {
   category: string;
   createdAt: string;
   updatedAt: string;
+  transferId?: string;
+  transferType?: 'outgoing' | 'incoming' | 'regular';
+  relatedAccount?: string;
 }
 
 interface BankAccount {
@@ -37,6 +40,7 @@ interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (formData: TransactionFormData, editingTransaction: Transaction | null, shouldBulkUpdate: boolean) => Promise<void>;
+  onConvertToTransfer?: (transactionId: string, toAccount: string) => Promise<void>;
   editingTransaction: Transaction | null;
   accounts: BankAccount[];
   categories: Category[];
@@ -47,6 +51,7 @@ export function TransactionModal({
   isOpen,
   onClose,
   onSave,
+  onConvertToTransfer,
   editingTransaction,
   accounts,
   categories,
@@ -62,6 +67,8 @@ export function TransactionModal({
     category: ''
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isTransfer, setIsTransfer] = useState(false);
+  const [transferToAccount, setTransferToAccount] = useState('');
 
   const getCategoryName = (categoryId: string) => {
     const category = categories.find(cat => cat.categoryId === categoryId);
@@ -80,6 +87,9 @@ export function TransactionModal({
           fee: editingTransaction.fee,
           category: editingTransaction.category
         });
+        // Check if this is already a transfer transaction
+        setIsTransfer(!!editingTransaction.transferType);
+        setTransferToAccount(editingTransaction.relatedAccount || '');
       } else {
         setFormData({
           account: selectedAccount || '',
@@ -90,6 +100,8 @@ export function TransactionModal({
           fee: 0,
           category: ''
         });
+        setIsTransfer(false);
+        setTransferToAccount('');
       }
     }
   }, [isOpen, editingTransaction, selectedAccount]);
@@ -107,6 +119,13 @@ export function TransactionModal({
     setIsSaving(true);
 
     try {
+      // If converting to transfer and we have the conversion function and editing a transaction
+      if (isTransfer && transferToAccount && editingTransaction && onConvertToTransfer && !editingTransaction.transferType) {
+        await onConvertToTransfer(editingTransaction.transactionId, transferToAccount);
+        onClose();
+        return;
+      }
+
       const isCategoryChanged = editingTransaction &&
         editingTransaction.category !== formData.category;
 
@@ -292,6 +311,50 @@ export function TransactionModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 resize-vertical"
               />
             </div>
+
+            {/* Transfer Conversion Option */}
+            {editingTransaction && !editingTransaction.transferType && onConvertToTransfer && (
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <div className="flex items-center mb-3">
+                  <input
+                    type="checkbox"
+                    id="convertToTransfer"
+                    checked={isTransfer}
+                    onChange={(e) => setIsTransfer(e.target.checked)}
+                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="convertToTransfer" className="ml-2 text-sm font-medium text-purple-700">
+                    💸 Convert this transaction to a money transfer
+                  </label>
+                </div>
+
+                {isTransfer && (
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">
+                      Transfer to Account
+                    </label>
+                    <select
+                      value={transferToAccount}
+                      onChange={(e) => setTransferToAccount(e.target.value)}
+                      required={isTransfer}
+                      className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200"
+                    >
+                      <option value="">Select destination account</option>
+                      {accounts
+                        .filter(acc => acc.isActive && acc.accountId !== editingTransaction.account)
+                        .map(account => (
+                          <option key={account.accountId} value={account.accountId}>
+                            {account.accountName} ({account.currency})
+                          </option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-purple-600 mt-1">
+                      This will create a corresponding incoming transaction in the destination account.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 mt-6">
@@ -303,10 +366,14 @@ export function TransactionModal({
               {isSaving ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
+                  {isTransfer && editingTransaction && !editingTransaction.transferType ? 'Converting to Transfer...' : 'Saving...'}
                 </div>
               ) : (
-                editingTransaction ? 'Update Transaction' : 'Create Transaction'
+                isTransfer && editingTransaction && !editingTransaction.transferType
+                  ? 'Convert to Transfer'
+                  : editingTransaction
+                    ? 'Update Transaction'
+                    : 'Create Transaction'
               )}
             </button>
             <button

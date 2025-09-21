@@ -5,10 +5,13 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.696.0",
     "@aws-sdk/lib-dynamodb": "^3.696.0",
+    "aws-xray-sdk-core": "^3.10.3",
+    "lambda-log": "^3.1.0",
     "uuid": "^11.0.3"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.152",
+    "@types/lambda-log": "^3.0.3",
     "@types/node": "^18.19.64",
     "@types/uuid": "^10.0.0",
     "typescript": "~5.9.2"

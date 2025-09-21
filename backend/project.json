@@ -9,15 +9,15 @@
       "outputs": ["{projectRoot}/dist"],
       "defaultConfiguration": "production",
       "options": {
-        "command": "cd backend && npx esbuild src/main.ts src/accounts-handler.ts src/transactions-handler.ts --bundle --platform=node --format=cjs --outdir=dist --sourcemap",
+        "command": "cd backend && npx esbuild src/**/*.ts --bundle --platform=node --format=cjs --outdir=dist --sourcemap",
         "cwd": "{workspaceRoot}"
       },
       "configurations": {
         "development": {
-          "command": "cd backend && npx esbuild src/main.ts src/accounts-handler.ts src/transactions-handler.ts --bundle --platform=node --format=cjs --outdir=dist --sourcemap"
+          "command": "cd backend && npx esbuild src/**/*.ts --bundle --platform=node --format=cjs --outdir=dist --sourcemap"
         },
         "production": {
-          "command": "cd backend && npx esbuild src/main.ts src/accounts-handler.ts src/transactions-handler.ts --bundle --platform=node --format=cjs --outdir=dist --minify"
+          "command": "cd backend && npx esbuild src/**/*.ts --bundle --platform=node --format=cjs --outdir=dist --minify"
         }
       }
     },

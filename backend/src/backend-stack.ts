@@ -1,10 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as awslambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 
-const defaultFunctionProps = (name: string): lambda.NodejsFunctionProps => {  
+const defaultFunctionProps = (name: string): lambda.NodejsFunctionProps => {
 
   return {
 
@@ -31,6 +32,7 @@ const defaultFunctionProps = (name: string): lambda.NodejsFunctionProps => {
     // }),
 
     timeout: cdk.Duration.seconds(30),
+    tracing: awslambda.Tracing.ACTIVE,
   };
 };
 
@@ -76,6 +78,9 @@ export class BackendStack extends cdk.Stack {
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
     });
 
     // Global Secondary Index for querying by date
@@ -113,6 +118,9 @@ export class BackendStack extends cdk.Stack {
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
     });
 
     // DynamoDB table for categories
@@ -124,7 +132,9 @@ export class BackendStack extends cdk.Stack {
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      pointInTimeRecovery: true,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
     });
 
     // Lambda function for transactions CRUD operations
@@ -184,6 +194,9 @@ export class BackendStack extends cdk.Stack {
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: ['Content-Type'],
       },
+      deployOptions: {
+        tracingEnabled: true,
+      },
     });
 
     // API Gateway integration with Lambda
@@ -204,14 +217,22 @@ export class BackendStack extends cdk.Stack {
 
     // /transactions/{transactionId} - GET (read), PUT (update), DELETE
     const transactionResource =
-      transactionsResource.addResource('{transactionId}');
+    transactionsResource.addResource('{transactionId}');
     transactionResource.addMethod('GET', transactionsIntegration);
     transactionResource.addMethod('PUT', transactionsIntegration);
     transactionResource.addMethod('DELETE', transactionsIntegration);
 
+    // /transactions/{transactionId}/convert-to-transfer - PUT (convert to transfer)
+    const convertToTransferResource = transactionResource.addResource('convert-to-transfer');
+    convertToTransferResource.addMethod('PUT', transactionsIntegration);
+
     // /transactions/bulkUpdate - POST (bulk update categories)
     const bulkUpdateResource = transactionsResource.addResource('bulkUpdate');
     bulkUpdateResource.addMethod('POST', transactionsIntegration);
+
+    // /transactions/transfer - POST (create transfer)
+    const transferResource = transactionsResource.addResource('transfer');
+    transferResource.addMethod('POST', transactionsIntegration);
 
     // Accounts API endpoints
     const accountsIntegration = new apigateway.LambdaIntegration(
