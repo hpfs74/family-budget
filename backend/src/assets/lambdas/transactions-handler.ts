@@ -505,7 +505,7 @@ async function convertTransactionToTransfer(event: APIGatewayProxyEvent): Promis
   try {
     // Ensure the key values are strings and not undefined
     const accountKey = String(queryParams.account);
-    const transactionIdKey = String(pathParams.transactionId);
+    const transactionIdKey = pathParams.transactionId;
 
     // Get the original transaction
     const getKey = {
