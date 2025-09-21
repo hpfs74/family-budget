@@ -108,3 +108,17 @@ Set `VITE_API_ENDPOINT` to your deployed API Gateway URL after running `npm run 
 
 ### CORS Configuration
 CORS is handled at both API Gateway level (via `defaultCorsPreflightOptions`) and Lambda level (via response headers).
+
+### CDK Rules
+
+- aws-cdk-lib.aws_dynamodb.TableOptions#pointInTimeRecovery is deprecated.
+  convert this
+    ```typescript
+    pointInTimeRecovery: true,
+    ```
+  to 
+    ```typescript
+    pointInTimeRecoverySpecification: {
+      pointInTimeRecoveryEnabled: true,
+    },
+    ```

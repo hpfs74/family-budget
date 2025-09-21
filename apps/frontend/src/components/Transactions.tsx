@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Papa from 'papaparse';
 import { TransactionModal } from './TransactionModal';
+import { TransferModal } from './TransferModal';
+import { ConfirmationModal } from './ConfirmationModal';
+import { Snackbar } from './Snackbar';
 
 interface Transaction {
   transactionId: string;
@@ -13,6 +16,9 @@ interface Transaction {
   category: string;
   createdAt: string;
   updatedAt: string;
+  transferId?: string;
+  transferType?: 'outgoing' | 'incoming' | 'regular';
+  relatedAccount?: string;
 }
 
 interface BankAccount {
@@ -34,6 +40,16 @@ interface Category {
 }
 
 type TransactionFormData = Omit<Transaction, 'transactionId' | 'createdAt' | 'updatedAt'>;
+
+interface TransferData {
+  fromAccount: string;
+  toAccount: string;
+  amount: number;
+  date: string;
+  description: string;
+  currency: 'GBP' | 'EUR';
+  fee: number;
+}
 
 interface CSVRow {
   Type?: string;
@@ -57,9 +73,21 @@ export function Transactions() {
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [error, setError] = useState<string>('');
   const [showModal, setShowModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
+  const [snackbar, setSnackbar] = useState<{
+    isOpen: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    isOpen: false,
+    message: '',
+    type: 'info'
+  });
   const [importProgress, setImportProgress] = useState<{
     total: number;
     processed: number;
@@ -173,18 +201,100 @@ export function Transactions() {
     setShowModal(true);
   };
 
-  const handleDelete = async (transactionId: string) => {
-    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
+  const handleCreateTransfer = () => {
+    setShowTransferModal(true);
+  };
 
+  const handleSaveTransfer = async (transferData: TransferData) => {
     try {
-      const response = await fetch(`${apiEndpoint}transactions/${transactionId}`, {
-        method: 'DELETE'
+      const response = await fetch(`${apiEndpoint}transactions/transfer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transferData),
       });
-      if (!response.ok) throw new Error('Failed to delete transaction');
+
+      if (!response.ok) {
+        throw new Error('Failed to create transfer');
+      }
+
+      await fetchTransactions(selectedAccount);
+      setShowTransferModal(false);
+    } catch (err) {
+      setError('Error creating transfer: ' + (err as Error).message);
+      throw err;
+    }
+  };
+
+  const handleConvertToTransfer = async (transactionId: string, toAccount: string) => {
+    try {
+      const response = await fetch(`${apiEndpoint}transactions/${transactionId}/convert-to-transfer?account=${encodeURIComponent(selectedAccount)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ toAccount }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to convert transaction to transfer');
+      }
+
       await fetchTransactions(selectedAccount);
     } catch (err) {
-      setError('Error deleting transaction: ' + (err as Error).message);
+      setError('Error converting transaction to transfer: ' + (err as Error).message);
+      throw err;
     }
+  };
+
+  const showSnackbar = (message: string, type: 'success' | 'error' | 'info') => {
+    setSnackbar({
+      isOpen: true,
+      message,
+      type
+    });
+  };
+
+  const handleDelete = (transaction: Transaction) => {
+    setDeletingTransaction(transaction);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingTransaction) return;
+
+    if (!selectedAccount) {
+      showSnackbar('Error: No account selected for deletion', 'error');
+      setShowDeleteConfirm(false);
+      setDeletingTransaction(null);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiEndpoint}transactions/${deletingTransaction.transactionId}?account=${encodeURIComponent(deletingTransaction.account)}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to delete transaction: ${errorData}`);
+      }
+
+      await fetchTransactions(selectedAccount);
+      showSnackbar(`Transaction "${deletingTransaction.description}" has been deleted successfully`, 'success');
+    } catch (err) {
+      console.error('Delete error:', err);
+      showSnackbar('Error deleting transaction: ' + (err as Error).message, 'error');
+    } finally {
+      setShowDeleteConfirm(false);
+      setDeletingTransaction(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setDeletingTransaction(null);
   };
 
 
@@ -433,6 +543,13 @@ export function Transactions() {
             + Add Transaction
           </button>
           <button
+            onClick={handleCreateTransfer}
+            disabled={accounts.filter(acc => acc.isActive).length < 2}
+            className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+          >
+            💸 Transfer Money
+          </button>
+          <button
             onClick={() => setShowImport(!showImport)}
             disabled={!selectedAccount}
             className="w-full sm:w-auto bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
@@ -634,8 +751,15 @@ export function Transactions() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                      <div className="text-sm text-gray-900 max-w-xs">
                         {transaction.description}
+                        {transaction.transferType && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {transaction.transferType === 'outgoing' && '↗️ Transfer to '}
+                            {transaction.transferType === 'incoming' && '↙️ Transfer from '}
+                            {transaction.relatedAccount && getAccountName(transaction.relatedAccount)}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -671,7 +795,7 @@ export function Transactions() {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(transaction.transactionId)}
+                          onClick={() => handleDelete(transaction)}
                           className="text-red-600 hover:text-red-900 transition duration-200"
                         >
                           Delete
@@ -693,10 +817,41 @@ export function Transactions() {
           setEditingTransaction(null);
         }}
         onSave={handleSaveTransaction}
+        onConvertToTransfer={handleConvertToTransfer}
         editingTransaction={editingTransaction}
         accounts={accounts}
         categories={categories}
         selectedAccount={selectedAccount}
+      />
+
+      <TransferModal
+        isOpen={showTransferModal}
+        onClose={() => setShowTransferModal(false)}
+        onSave={handleSaveTransfer}
+        accounts={accounts}
+        selectedAccount={selectedAccount}
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        title="Delete Transaction"
+        message={
+          deletingTransaction
+            ? `Are you sure you want to delete the transaction "${deletingTransaction.description}"? This action cannot be undone.`
+            : 'Are you sure you want to delete this transaction?'
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmButtonType="danger"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+
+      <Snackbar
+        isOpen={snackbar.isOpen}
+        message={snackbar.message}
+        type={snackbar.type}
+        onClose={() => setSnackbar(prev => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

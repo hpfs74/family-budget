@@ -6,12 +6,13 @@ import {
   GetCommand,
   UpdateCommand,
   DeleteCommand,
-  QueryCommand,
-  BatchWriteCommand
+  QueryCommand
 } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
+import AWSXRay from 'aws-xray-sdk-core';
 
-const client = new DynamoDBClient({});
+// Capture AWS SDK calls with X-Ray
+const client = AWSXRay.captureAWSv3Client(new DynamoDBClient({}));
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.TABLE_NAME || 'BankTransactions';
@@ -25,6 +26,9 @@ interface Transaction {
   amount: number;
   fee: number;
   category: string;
+  transferId?: string;
+  transferType?: 'outgoing' | 'incoming' | 'regular';
+  relatedAccount?: string;
 }
 
 const corsHeaders = {
@@ -50,8 +54,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       case 'POST':
         if (path === '/transactions') {
           return await createTransaction(event);
-        } else if (path === '/transactions/bulkUpdate') {
-          return await bulkUpdateTransactions(event);
+        } else if (path === '/transactions/transfer') {
+          return await createTransfer(event);
         }
         break;
 
@@ -64,7 +68,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         break;
 
       case 'PUT':
-        if (path.startsWith('/transactions/')) {
+        if (path.startsWith('/transactions/') && path.endsWith('/convert-to-transfer')) {
+          return await convertTransactionToTransfer(event);
+        } else if (path.startsWith('/transactions/')) {
           return await updateTransaction(event);
         }
         break;
@@ -200,7 +206,7 @@ async function getTransactions(event: APIGatewayProxyEvent): Promise<APIGatewayP
     });
   }
 
-  const result = await docClient.send(command);
+  const result = await docClient.send(command) as any;
 
   return {
     statusCode: 200,
@@ -249,20 +255,13 @@ async function getTransaction(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
 async function updateTransaction(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   const pathParams = event.pathParameters;
+  const queryParams = event.queryStringParameters || {};
 
-  if (!pathParams?.transactionId) {
+  if (!pathParams?.transactionId || !queryParams.account || !event.body) {
     return {
       statusCode: 400,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'transactionId is required' })
-    };
-  }
-
-  if (!event.body) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'request body is required' })
+      body: JSON.stringify({ error: 'transactionId, account, and request body are required' })
     };
   }
 
@@ -295,7 +294,7 @@ async function updateTransaction(event: APIGatewayProxyEvent): Promise<APIGatewa
   const result = await docClient.send(new UpdateCommand({
     TableName: TABLE_NAME,
     Key: {
-      account: updates.account,
+      account: queryParams.account,
       transactionId: pathParams.transactionId
     },
     UpdateExpression: `SET ${updateExpressions.join(', ')}`,
@@ -338,7 +337,7 @@ async function deleteTransaction(event: APIGatewayProxyEvent): Promise<APIGatewa
   };
 }
 
-async function bulkUpdateTransactions(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+async function createTransfer(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   if (!event.body) {
     return {
       statusCode: 400,
@@ -347,94 +346,254 @@ async function bulkUpdateTransactions(event: APIGatewayProxyEvent): Promise<APIG
     };
   }
 
-  const { account, description, newCategory } = JSON.parse(event.body);
+  const transferData = JSON.parse(event.body);
 
-  if (!account || !description || !newCategory) {
+  // Validate required fields for transfer
+  if (!transferData.fromAccount || !transferData.toAccount ||
+      !transferData.amount || !transferData.date || !transferData.description) {
     return {
       statusCode: 400,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'account, description, and newCategory are required' })
+      body: JSON.stringify({ error: 'Missing required fields: fromAccount, toAccount, amount, date, description' })
+    };
+  }
+
+  if (transferData.fromAccount === transferData.toAccount) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Cannot transfer to the same account' })
+    };
+  }
+
+  // Validate currency
+  if (!['GBP', 'EUR'].includes(transferData.currency)) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Currency must be GBP or EUR' })
+    };
+  }
+
+  const transferId = uuidv4();
+  const outgoingTransactionId = uuidv4();
+  const incomingTransactionId = uuidv4();
+
+  // Create outgoing transaction (negative amount)
+  const outgoingTransaction: Transaction = {
+    account: transferData.fromAccount,
+    transactionId: outgoingTransactionId,
+    date: transferData.date,
+    description: transferData.description,
+    currency: transferData.currency,
+    amount: -Math.abs(transferData.amount), // Ensure negative
+    fee: transferData.fee || 0,
+    category: 'transfer',
+    transferId,
+    transferType: 'outgoing',
+    relatedAccount: transferData.toAccount
+  };
+
+  // Create incoming transaction (positive amount)
+  const incomingTransaction: Transaction = {
+    account: transferData.toAccount,
+    transactionId: incomingTransactionId,
+    date: transferData.date,
+    description: transferData.description,
+    currency: transferData.currency,
+    amount: Math.abs(transferData.amount), // Ensure positive
+    fee: 0, // Fees typically only apply to the outgoing transaction
+    category: 'transfer',
+    transferId,
+    transferType: 'incoming',
+    relatedAccount: transferData.fromAccount
+  };
+
+  try {
+    // Create both transactions
+    await Promise.all([
+      docClient.send(new PutCommand({
+        TableName: TABLE_NAME,
+        Item: outgoingTransaction
+      })),
+      docClient.send(new PutCommand({
+        TableName: TABLE_NAME,
+        Item: incomingTransaction
+      }))
+    ]);
+
+    return {
+      statusCode: 201,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        transferId,
+        outgoingTransaction,
+        incomingTransaction
+      })
+    };
+  } catch (error) {
+    console.error('Error creating transfer:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Failed to create transfer' })
+    };
+  }
+}
+
+async function convertTransactionToTransfer(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const pathParams = event.pathParameters;
+  const queryParams = event.queryStringParameters || {};
+
+  console.log('Convert to transfer - pathParams:', pathParams);
+  console.log('Convert to transfer - queryParams:', queryParams);
+  console.log('Convert to transfer - body:', event.body);
+
+  if (!pathParams?.transactionId || !queryParams.account || !event.body) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: 'transactionId, account, and request body are required',
+        debug: {
+          transactionId: pathParams?.transactionId,
+          account: queryParams.account,
+          hasBody: !!event.body
+        }
+      })
+    };
+  }
+
+  let toAccount = '';
+  try {
+    const requestData = JSON.parse(event.body);
+    toAccount = requestData.toAccount;
+  } catch (err: unknown) {
+    const error = err as Error;
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Invalid JSON in request body', reason: error.message, stack: error.stack })
+    };
+  }
+  
+
+  if (!toAccount) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'toAccount is required' })
+    };
+  }
+
+  if (queryParams.account === toAccount) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Cannot transfer to the same account' })
     };
   }
 
   try {
-    // Query all transactions for the account
-    const queryResult = await docClient.send(new QueryCommand({
+    // Ensure the key values are strings and not undefined
+    const accountKey = String(queryParams.account);
+    const transactionIdKey = String(pathParams.transactionId);
+
+    // Get the original transaction
+    const getKey = {
+      account: accountKey,
+      transactionId: transactionIdKey
+    };
+    console.log('Getting transaction with key:', getKey);
+    console.log('Key types:', typeof accountKey, typeof transactionIdKey);
+
+    const getResult = await docClient.send(new GetCommand({
       TableName: TABLE_NAME,
-      KeyConditionExpression: 'account = :account',
-      ExpressionAttributeValues: {
-        ':account': account
-      }
+      Key: getKey
     }));
 
-    if (!queryResult.Items || queryResult.Items.length === 0) {
+    if (!getResult.Item) {
       return {
-        statusCode: 200,
+        statusCode: 404,
         headers: corsHeaders,
-        body: JSON.stringify({
-          message: 'No transactions found for this account',
-          updatedCount: 0
-        })
+        body: JSON.stringify({ error: 'Transaction not found' })
       };
     }
 
-    // Filter transactions with matching description
-    const matchingTransactions = queryResult.Items.filter(
-      item => item.description === description
-    );
+    const originalTransaction = getResult.Item as Transaction;
 
-    if (matchingTransactions.length === 0) {
+    // Check if it's already a transfer
+    if (originalTransaction.transferType) {
       return {
-        statusCode: 200,
+        statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({
-          message: 'No transactions found with matching description',
-          updatedCount: 0
-        })
+        body: JSON.stringify({ error: 'Transaction is already a transfer' })
       };
     }
 
-    // Update transactions in batches (DynamoDB BatchWrite limit is 25 items)
-    const batchSize = 25;
-    let totalUpdated = 0;
+    const transferId = uuidv4();
+    const incomingTransactionId = uuidv4();
 
-    for (let i = 0; i < matchingTransactions.length; i += batchSize) {
-      const batch = matchingTransactions.slice(i, i + batchSize);
+    // Update the original transaction to be an outgoing transfer
+    const updateResult = await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        account: accountKey,
+        transactionId: transactionIdKey
+      },
+      UpdateExpression: 'SET #transferId = :transferId, #transferType = :transferType, #relatedAccount = :relatedAccount, #category = :category, #amount = :amount',
+      ExpressionAttributeNames: {
+        '#transferId': 'transferId',
+        '#transferType': 'transferType',
+        '#relatedAccount': 'relatedAccount',
+        '#category': 'category',
+        '#amount': 'amount'
+      },
+      ExpressionAttributeValues: {
+        ':transferId': transferId,
+        ':transferType': 'outgoing',
+        ':relatedAccount': toAccount,
+        ':category': 'transfer',
+        ':amount': -Math.abs(originalTransaction.amount) // Ensure negative for outgoing
+      },
+      ReturnValues: 'ALL_NEW'
+    }));
 
-      const writeRequests = batch.map(transaction => ({
-        PutRequest: {
-          Item: {
-            ...transaction,
-            category: newCategory,
-            updatedAt: new Date().toISOString()
-          }
-        }
-      }));
+    // Create the corresponding incoming transaction
+    const incomingTransaction: Transaction = {
+      account: toAccount,
+      transactionId: incomingTransactionId,
+      date: originalTransaction.date,
+      description: originalTransaction.description,
+      currency: originalTransaction.currency,
+      amount: Math.abs(originalTransaction.amount), // Ensure positive for incoming
+      fee: 0, // Fees only apply to outgoing transaction
+      category: 'transfer',
+      transferId,
+      transferType: 'incoming',
+      relatedAccount: queryParams.account
+    };
 
-      await docClient.send(new BatchWriteCommand({
-        RequestItems: {
-          [TABLE_NAME]: writeRequests
-        }
-      }));
-
-      totalUpdated += batch.length;
-    }
+    await docClient.send(new PutCommand({
+      TableName: TABLE_NAME,
+      Item: incomingTransaction
+    }));
 
     return {
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({
-        message: `Successfully updated ${totalUpdated} transactions`,
-        updatedCount: totalUpdated
+        outgoingTransaction: updateResult.Attributes,
+        incomingTransaction,
+        transferId
       })
     };
-
   } catch (error) {
-    console.error('Error in bulk update:', error);
+    console.error('Error converting transaction to transfer:', error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Failed to bulk update transactions' })
+      body: JSON.stringify({ error: 'Failed to convert transaction to transfer' })
     };
   }
 }

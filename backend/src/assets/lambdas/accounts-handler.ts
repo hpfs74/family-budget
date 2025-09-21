@@ -9,8 +9,10 @@ import {
   ScanCommand
 } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
+import AWSXRay from 'aws-xray-sdk-core';
 
-const client = new DynamoDBClient({});
+// Capture AWS SDK calls with X-Ray
+const client = AWSXRay.captureAWSv3Client(new DynamoDBClient({}));
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.TABLE_NAME || 'BankAccounts';
