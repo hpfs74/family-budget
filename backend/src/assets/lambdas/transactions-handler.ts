@@ -486,7 +486,6 @@ async function convertTransactionToTransfer(event: APIGatewayProxyEvent): Promis
     };
   }
   
-
   if (!toAccount) {
     return {
       statusCode: 400,
