@@ -147,7 +147,7 @@ export function TransferModal({
                   <option value="">Select Source Account</option>
                   {accounts.filter(acc => acc.isActive).map(account => (
                     <option key={account.accountId} value={account.accountId}>
-                      {account.accountName} ({account.currency}) - £{account.balance.toFixed(2)}
+                      {account.accountName} ({account.currency}) - {account.currency === 'GBP' ? '£' : '€'}{account.balance.toFixed(2)}
                     </option>
                   ))}
                 </select>
@@ -167,7 +167,7 @@ export function TransferModal({
                   <option value="">Select Destination Account</option>
                   {availableToAccounts.map(account => (
                     <option key={account.accountId} value={account.accountId}>
-                      {account.accountName} ({account.currency}) - £{account.balance.toFixed(2)}
+                      {account.accountName} ({account.currency}) - {account.currency === 'GBP' ? '£' : '€'}{account.balance.toFixed(2)}
                     </option>
                   ))}
                 </select>
