@@ -470,10 +470,13 @@ async function convertTransactionToTransfer(event: APIGatewayProxyEvent): Promis
     toAccount = requestData.toAccount;
   } catch (err: unknown) {
     const error = err as Error;
+
+    console.error('Invalid JSON in request body', {reason: error.message, stack: error.stack});
+
     return {
       statusCode: 400,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Invalid JSON in request body', reason: error.message, stack: error.stack })
+      body: JSON.stringify({ error: 'Invalid JSON in request body' })
     };
   }
   
