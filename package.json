@@ -9,6 +9,8 @@
     "test": "nx run-many -t test",
     "test:frontend": "nx test frontend",
     "test:backend": "nx test backend",
+    "test:e2e": "npx nx e2e @budget-app/frontend-e2e",
+    "test:backend-e2e": "npx nx e2e @budget-app/backend-e2e",
     "cdk:synth": "cdk synth",
     "cdk:diff": "cdk diff",
     "cdk:deploy": "cdk deploy",
