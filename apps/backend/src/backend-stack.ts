@@ -7,7 +7,7 @@ import { Construct } from 'constructs';
 import * as path from 'path';
 
 export interface BackendStackProps extends cdk.StackProps {
-  stackEnv?: 'prod' | 'qa';
+  stackEnv: 'prod' | 'qa';
 }
 
 export class BackendStack extends cdk.Stack {

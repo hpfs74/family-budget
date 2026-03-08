@@ -4,6 +4,9 @@ import { BackendStack } from './backend-stack.js';
 import { CertificateStack } from './certificate-stack.js';
 import { FrontendStack } from './frontend-stack.js';
 
+// Default AWS account for this project — used when env is not explicitly provided
+const DEFAULT_ACCOUNT = '495133941005';
+
 export interface BudgetAppStageProps extends cdk.StageProps {
   stackEnv: 'prod' | 'qa';
 }
@@ -14,7 +17,7 @@ export class BudgetAppStage extends cdk.Stage {
   constructor(scope: Construct, id: string, props: BudgetAppStageProps) {
     super(scope, id, props);
 
-    const account = props.env?.account ?? '495133941005';
+    const account = props.env?.account ?? DEFAULT_ACCOUNT;
     const region = props.env?.region ?? 'eu-south-1';
 
     const backendStack = new BackendStack(this, 'BudgetAppBackendStack', {
@@ -30,7 +33,7 @@ export class BudgetAppStage extends cdk.Stage {
       });
 
       new FrontendStack(this, 'BudgetFrontendStack', {
-        env: { account, region },
+        env: { account, region: 'eu-south-1' },
         crossRegionReferences: true,
         certificate: certStack.certificate,
       });
