@@ -1,12 +1,168 @@
-import { execSync } from 'child_process';
-import { join } from 'path';
+import axios, { AxiosInstance } from 'axios';
 
-describe('CLI tests', () => {
-  it('should print a message', () => {
-    const cliPath = join(process.cwd(), 'backend/dist');
+const baseURL = process.env['API_BASE_URL'];
+if (!baseURL) throw new Error('API_BASE_URL env var is required');
 
-    const output = execSync(`node ${cliPath}`).toString();
+const api: AxiosInstance = axios.create({
+  baseURL: baseURL.replace(/\/$/, ''), // strip trailing slash
+  timeout: 10_000,
+});
 
-    expect(output).toMatch(/Hello World/);
+let createdAccountId: string;
+let createdCategoryId: string;
+let createdBudgetId: string;
+let createdTransactionId: string;
+
+describe('Accounts API', () => {
+  it('creates an account', async () => {
+    const res = await api.post('/accounts', {
+      accountName: 'E2E Test Account',
+      accountNumber: 'GB00TEST0001',
+      bankName: 'E2E Bank',
+      accountType: 'CHECKING',
+      currency: 'EUR',
+      balance: 1000,
+    });
+    expect(res.status).toBe(201);
+    expect(res.data.accountId).toBeDefined();
+    createdAccountId = res.data.accountId;
+  });
+
+  it('lists accounts and includes the created one', async () => {
+    const res = await api.get('/accounts');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.data)).toBe(true);
+    expect(res.data.some((a: { accountId: string }) => a.accountId === createdAccountId)).toBe(true);
+  });
+
+  it('gets the account by id', async () => {
+    const res = await api.get(`/accounts/${createdAccountId}`);
+    expect(res.status).toBe(200);
+    expect(res.data.accountName).toBe('E2E Test Account');
+  });
+
+  it('updates the account', async () => {
+    const res = await api.put(`/accounts/${createdAccountId}`, { accountName: 'Updated E2E Account' });
+    expect(res.status).toBe(200);
+  });
+
+  it('deletes the account', async () => {
+    const res = await api.delete(`/accounts/${createdAccountId}`);
+    expect(res.status).toBe(204);
+  });
+});
+
+describe('Categories API', () => {
+  it('creates a category', async () => {
+    const res = await api.post('/categories', { name: 'E2E Category', color: '#ff0000' });
+    expect(res.status).toBe(201);
+    expect(res.data.categoryId).toBeDefined();
+    createdCategoryId = res.data.categoryId;
+  });
+
+  it('lists categories and includes the created one', async () => {
+    const res = await api.get('/categories');
+    expect(res.status).toBe(200);
+    expect(res.data.some((c: { categoryId: string }) => c.categoryId === createdCategoryId)).toBe(true);
+  });
+
+  it('gets the category by id', async () => {
+    const res = await api.get(`/categories/${createdCategoryId}`);
+    expect(res.status).toBe(200);
+    expect(res.data.name).toBe('E2E Category');
+  });
+
+  it('deletes the category', async () => {
+    const res = await api.delete(`/categories/${createdCategoryId}`);
+    expect(res.status).toBe(204);
+  });
+});
+
+describe('Budget API', () => {
+  it('creates a budget', async () => {
+    const res = await api.post('/budget', {
+      name: 'E2E Budget',
+      categoryId: 'e2e-category-placeholder',
+      amount: 500,
+      currency: 'EUR',
+      type: 'monthly',
+      startMonth: '2026-01',
+      endMonth: '2026-12',
+      year: 2026,
+    });
+    expect(res.status).toBe(201);
+    expect(res.data.budgetId).toBeDefined();
+    createdBudgetId = res.data.budgetId;
+  });
+
+  it('lists budgets and includes the created one', async () => {
+    const res = await api.get('/budget');
+    expect(res.status).toBe(200);
+    expect(res.data.some((b: { budgetId: string }) => b.budgetId === createdBudgetId)).toBe(true);
+  });
+
+  it('gets the budget by id', async () => {
+    const res = await api.get(`/budget/${createdBudgetId}`);
+    expect(res.status).toBe(200);
+    expect(res.data.name).toBe('E2E Budget');
+  });
+
+  it('deletes the budget', async () => {
+    const res = await api.delete(`/budget/${createdBudgetId}`);
+    expect(res.status).toBe(204);
+  });
+});
+
+describe('Transactions API', () => {
+  let txAccountId: string;
+
+  beforeAll(async () => {
+    const res = await api.post('/accounts', {
+      accountName: 'E2E Tx Account',
+      accountNumber: 'GB00TEST0002',
+      bankName: 'E2E Bank',
+      accountType: 'CHECKING',
+      currency: 'EUR',
+      balance: 500,
+    });
+    txAccountId = res.data.accountId;
+  });
+
+  afterAll(async () => {
+    await api.delete(`/accounts/${txAccountId}`);
+  });
+
+  it('creates a transaction', async () => {
+    const res = await api.post('/transactions', {
+      account: txAccountId,
+      amount: -50,
+      description: 'E2E Test Transaction',
+      date: '2026-03-08',
+      currency: 'EUR',
+      type: 'expense',
+    });
+    expect(res.status).toBe(201);
+    expect(res.data.transactionId).toBeDefined();
+    createdTransactionId = res.data.transactionId;
+  });
+
+  it('lists transactions for the account', async () => {
+    const res = await api.get(`/transactions?account=${txAccountId}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.data)).toBe(true);
+    expect(
+      res.data.some((t: { transactionId: string }) => t.transactionId === createdTransactionId),
+    ).toBe(true);
+  });
+
+  it('gets the transaction by id', async () => {
+    const res = await api.get(`/transactions/${createdTransactionId}`);
+    expect(res.status).toBe(200);
+    expect(res.data.description).toBe('E2E Test Transaction');
+  });
+
+  it('deletes the transaction', async () => {
+    const res = await api.delete(`/transactions/${createdTransactionId}`);
+    expect(res.status).toBe(204);
   });
 });
