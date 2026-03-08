@@ -5,11 +5,15 @@ import { docClient } from '../../shared/db';
 import { ok, badRequest, internalError } from '../../shared/response';
 
 const TABLE_NAME = process.env['TRANSACTIONS_TABLE'] ?? 'BankTransactions';
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
     const { account, category, startDate, endDate } = event.queryStringParameters ?? {};
     if (!account) return badRequest('account is required');
+
+    if (startDate && !DATE_REGEX.test(startDate)) return badRequest('startDate must be YYYY-MM-DD');
+    if (endDate && !DATE_REGEX.test(endDate)) return badRequest('endDate must be YYYY-MM-DD');
 
     let filterExpression: string | undefined;
     let filterAttributeNames: Record<string, string> | undefined;

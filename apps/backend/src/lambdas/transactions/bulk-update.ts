@@ -18,14 +18,20 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const updatedAt = new Date().toISOString();
     const updatesWithTimestamp = { ...updates, updatedAt };
     const expr = buildUpdateExpression(updatesWithTimestamp, ['account', 'transactionId']);
+    let successCount = 0;
     for (const transactionId of transactionIds) {
-      await docClient.send(new UpdateCommand({
-        TableName: TABLE_NAME,
-        Key: { account, transactionId },
-        ...expr,
-      }));
+      try {
+        await docClient.send(new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key: { account, transactionId },
+          ...expr,
+        }));
+        successCount++;
+      } catch (itemError) {
+        log.error('bulkUpdateTransactions item error', { transactionId, error: itemError });
+      }
     }
-    return ok({ updated: transactionIds.length });
+    return ok({ updated: successCount, total: transactionIds.length });
   } catch (error) {
     log.error('bulkUpdateTransactions error', { error });
     return internalError();

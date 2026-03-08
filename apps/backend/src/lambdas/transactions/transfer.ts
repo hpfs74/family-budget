@@ -39,7 +39,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       currency,
       amount,
       fee: 0,
-      toAccount: fromAccount,
+      fromAccount: fromAccount,
       createdAt: now,
       updatedAt: now,
     };
