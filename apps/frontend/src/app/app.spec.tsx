@@ -19,6 +19,10 @@ jest.mock('../components/Transactions', () => ({
   Transactions: () => <div data-testid="transactions">Mocked Transactions</div>
 }));
 
+jest.mock('../components/Budget', () => ({
+  Budget: () => <div data-testid="budget">Mocked Budget</div>
+}));
+
 
 describe('App', () => {
   it('should render successfully', () => {
