@@ -31,7 +31,8 @@ export class FrontendStack extends cdk.Stack {
     const bucket = new s3.Bucket(this, 'FrontendBucket', {
       bucketName: `budget-matteo-cool-${cdk.Stack.of(this).account}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
       versioned: false,
     });
 
