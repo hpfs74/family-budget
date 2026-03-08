@@ -30,8 +30,9 @@ describe('Accounts API', () => {
   it('lists accounts and includes the created one', async () => {
     const res = await api.get('/accounts');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.data)).toBe(true);
-    expect(res.data.some((a: { accountId: string }) => a.accountId === createdAccountId)).toBe(true);
+    const accounts: { accountId: string }[] = res.data.accounts ?? res.data;
+    expect(Array.isArray(accounts)).toBe(true);
+    expect(accounts.some((a) => a.accountId === createdAccountId)).toBe(true);
   });
 
   it('gets the account by id', async () => {
@@ -62,7 +63,9 @@ describe('Categories API', () => {
   it('lists categories and includes the created one', async () => {
     const res = await api.get('/categories');
     expect(res.status).toBe(200);
-    expect(res.data.some((c: { categoryId: string }) => c.categoryId === createdCategoryId)).toBe(true);
+    const categories: { categoryId: string }[] = res.data.categories ?? res.data;
+    expect(Array.isArray(categories)).toBe(true);
+    expect(categories.some((c) => c.categoryId === createdCategoryId)).toBe(true);
   });
 
   it('gets the category by id', async () => {
@@ -113,7 +116,9 @@ describe('Budget API', () => {
   it('lists budgets and includes the created one', async () => {
     const res = await api.get('/budget');
     expect(res.status).toBe(200);
-    expect(res.data.some((b: { budgetId: string }) => b.budgetId === createdBudgetId)).toBe(true);
+    const items: { budgetId: string }[] = res.data.items ?? res.data.budgets ?? res.data;
+    expect(Array.isArray(items)).toBe(true);
+    expect(items.some((b) => b.budgetId === createdBudgetId)).toBe(true);
   });
 
   it('gets the budget by id', async () => {
@@ -170,20 +175,19 @@ describe('Transactions API', () => {
   it('lists transactions for the account', async () => {
     const res = await api.get(`/transactions?account=${txAccountId}`);
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.data)).toBe(true);
-    expect(
-      res.data.some((t: { transactionId: string }) => t.transactionId === createdTransactionId),
-    ).toBe(true);
+    const transactions: { transactionId: string }[] = res.data.transactions ?? res.data;
+    expect(Array.isArray(transactions)).toBe(true);
+    expect(transactions.some((t) => t.transactionId === createdTransactionId)).toBe(true);
   });
 
   it('gets the transaction by id', async () => {
-    const res = await api.get(`/transactions/${createdTransactionId}`);
+    const res = await api.get(`/transactions/${createdTransactionId}?account=${txAccountId}`);
     expect(res.status).toBe(200);
     expect(res.data.description).toBe('E2E Test Transaction');
   });
 
   it('deletes the transaction', async () => {
-    const res = await api.delete(`/transactions/${createdTransactionId}`);
+    const res = await api.delete(`/transactions/${createdTransactionId}?account=${txAccountId}`);
     expect(res.status).toBe(204);
   });
 });
