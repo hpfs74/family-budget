@@ -10,8 +10,8 @@ Nx monorepo with four projects:
 |------------------|-------------------|------------------------------------------------------|
 | `frontend`       | `apps/frontend/`  | React 19 + Vite SPA → [CLAUDE.md](apps/frontend/CLAUDE.md) |
 | `frontend-e2e`   | `apps/frontend-e2e/` | Cypress e2e tests → [CLAUDE.md](apps/frontend-e2e/CLAUDE.md) |
-| `backend`        | `backend/`        | AWS CDK + Lambda + DynamoDB → [CLAUDE.md](backend/CLAUDE.md) |
-| `backend-e2e`    | `backend-e2e/`    | Backend integration tests → [CLAUDE.md](backend-e2e/CLAUDE.md) |
+| `backend`        | `apps/backend/`   | AWS CDK + Lambda + DynamoDB → [CLAUDE.md](apps/backend/CLAUDE.md) |
+| `backend-e2e`    | `apps/backend-e2e/` | Backend integration tests → [CLAUDE.md](apps/backend-e2e/CLAUDE.md) |
 
 ## Essential Commands
 
