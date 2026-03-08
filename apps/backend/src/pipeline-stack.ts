@@ -8,8 +8,9 @@ import {
 import { Construct } from 'constructs';
 import { BudgetAppStage } from './app-stage.js';
 
+const BUDGET_APP_ACCOUNT = '495133941005';
 const CODESTAR_CONNECTION_ARN =
-  'arn:aws:codeconnections:eu-south-1:495133941005:connection/573b5341-5aa0-4a20-9294-87752d831c1a';
+  `arn:aws:codeconnections:eu-south-1:${BUDGET_APP_ACCOUNT}:connection/573b5341-5aa0-4a20-9294-87752d831c1a`;
 const GITHUB_REPO = 'hpfs74/family-budget';
 
 export class BudgetPipelineStack extends cdk.Stack {
@@ -37,7 +38,7 @@ export class BudgetPipelineStack extends cdk.Stack {
 
     // ── QA Stage ──────────────────────────────────────────────────────────────
     const qaAppStage = new BudgetAppStage(this, 'QA', {
-      env: { account: '495133941005', region: 'eu-south-1' },
+      env: { account: BUDGET_APP_ACCOUNT, region: 'eu-south-1' },
       stackEnv: 'qa',
     });
     const qaStage = pipeline.addStage(qaAppStage);
@@ -78,7 +79,7 @@ export class BudgetPipelineStack extends cdk.Stack {
     // ── Prod Stage ─────────────────────────────────────────────────────────────
     pipeline.addStage(
       new BudgetAppStage(this, 'Prod', {
-        env: { account: '495133941005', region: 'eu-south-1' },
+        env: { account: BUDGET_APP_ACCOUNT, region: 'eu-south-1' },
         stackEnv: 'prod',
       }),
     );

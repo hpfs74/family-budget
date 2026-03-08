@@ -13,10 +13,10 @@ export interface BackendStackProps extends cdk.StackProps {
 export class BackendStack extends cdk.Stack {
   readonly apiUrlOutput: cdk.CfnOutput;
 
-  constructor(scope: Construct, id: string, props?: BackendStackProps) {
+  constructor(scope: Construct, id: string, props: BackendStackProps) {
     super(scope, id, props);
 
-    const isQa = props?.stackEnv === 'qa';
+    const isQa = props.stackEnv === 'qa';
     const suffix = isQa ? '-QA' : '';
 
     // ---------------------------------------------------------------------------

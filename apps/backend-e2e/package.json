@@ -17,8 +17,7 @@
           "passWithNoTests": true
         },
         "dependsOn": [
-          "@budget-app/backend:build",
-          "@budget-app/backend:serve"
+          "@budget-app/backend:build"
         ]
       }
     }
