@@ -49,4 +49,8 @@ test-output
 
 cdk.out
 
-.env*pnpm-lock.yaml
+.env*
+pnpm-lock.yaml
+
+# Git worktrees
+.worktrees
