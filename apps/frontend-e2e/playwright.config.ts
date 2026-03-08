@@ -17,7 +17,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx vite dev --host localhost --port 4200',
+    command: process.env['CI']
+      ? 'npx vite preview --host localhost --port 4200'
+      : 'npx vite dev --host localhost --port 4200',
     url: baseURL,
     reuseExistingServer: !process.env['CI'],
     cwd: `${workspaceRoot}/apps/frontend`,
