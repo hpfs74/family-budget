@@ -28,17 +28,17 @@ export class BudgetPipelineStack extends cdk.Stack {
       selfMutation: true,
       crossAccountKeys: false,
       pipelineType: PipelineType.V2,
-      // Install Node 24 via nvm — standard:7.0 only ships Node 18/20 pre-installed
+      // Install Node 24 via `n` — standard:7.0 only ships Node 18/20 pre-installed
+      // `n` doesn't require shell re-sourcing unlike nvm
       codeBuildDefaults: {
         partialBuildSpec: codebuild.BuildSpec.fromObject({
           version: '0.2',
           phases: {
             install: {
               commands: [
-                '. $NVM_DIR/nvm.sh',
-                'nvm install 24',
-                'nvm use 24',
-                'nvm alias default 24',
+                'npm install -g n',
+                'n 24',
+                'hash -r',
               ],
             },
           },
