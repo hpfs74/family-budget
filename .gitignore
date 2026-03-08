@@ -49,4 +49,4 @@ test-output
 
 cdk.out
 
-.env*
+.env*pnpm-lock.yaml
