@@ -4,228 +4,275 @@ import * as awslambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
-
-const defaultFunctionProps = (name: string): lambda.NodejsFunctionProps => {
-
-  return {
-
-    handler: `handler`,
-    entry: `apps/backend/src/assets/lambdas/${name}.ts`,
-    depsLockFilePath: 'package-lock.json',
-    bundling: {
-      minify: true,
-      loader: {'.node': 'file'},
-      sourceMap: true,
-    },
-
-    // code: lambda.Code.fromAsset('backend', {
-    //   bundling: {
-    //     image: lambda.Runtime.NODEJS_18_X.bundlingImage,
-    //     command: [
-    //       'bash', '-c', [
-    //         'npm install',
-    //         'npx tsc src/accounts-handler.ts src/transactions-handler.ts --outDir /asset-output --target ES2020 --module CommonJS --esModuleInterop --skipLibCheck',
-    //         'cp -r node_modules /asset-output/'
-    //       ].join(' && ')
-    //     ],
-    //     user: 'root',
-    //   },
-    // }),
-
-    timeout: cdk.Duration.seconds(30),
-    tracing: awslambda.Tracing.ACTIVE,
-  };
-};
+import * as path from 'path';
 
 export class BackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // Lambda function that returns current date and time
-    // const dateTimeLambda = new lambda.Function(this, 'DateTimeFunction', {
-      
-    //   handler: 'index.handler',
-    //   code: lambda.Code.fromInline(`
-    //     exports.handler = async (event) => {
-    //       const now = new Date();
-    //       return {
-    //         statusCode: 200,
-    //         headers: {
-    //           'Content-Type': 'application/json',
-    //           'Access-Control-Allow-Origin': '*',
-    //           'Access-Control-Allow-Headers': 'Content-Type',
-    //           'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
-    //         },
-    //         body: JSON.stringify({
-    //           dateTime: now.toISOString(),
-    //           timestamp: now.getTime(),
-    //           formatted: now.toLocaleString()
-    //         })
-    //       };
-    //     };
-    //   `),
-    // });
+    // ---------------------------------------------------------------------------
+    // DynamoDB tables
+    // ---------------------------------------------------------------------------
 
-    // DynamoDB table for bank transactions
     const transactionsTable = new dynamodb.Table(this, 'TransactionsTable', {
       tableName: 'BankTransactions',
-      partitionKey: {
-        name: 'account',
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: 'transactionId',
-        type: dynamodb.AttributeType.STRING,
-      },
+      partitionKey: { name: 'account', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'transactionId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      pointInTimeRecoverySpecification: {
-        pointInTimeRecoveryEnabled: true,
-      },
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
 
-    // Global Secondary Index for querying by date
     transactionsTable.addGlobalSecondaryIndex({
       indexName: 'DateIndex',
-      partitionKey: {
-        name: 'account',
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: 'date',
-        type: dynamodb.AttributeType.STRING,
-      },
+      partitionKey: { name: 'account', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'date', type: dynamodb.AttributeType.STRING },
     });
 
-    // Global Secondary Index for querying by category
     transactionsTable.addGlobalSecondaryIndex({
       indexName: 'CategoryIndex',
-      partitionKey: {
-        name: 'account',
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: 'category',
-        type: dynamodb.AttributeType.STRING,
-      },
+      partitionKey: { name: 'account', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'category', type: dynamodb.AttributeType.STRING },
     });
 
-    // DynamoDB table for bank accounts
     const accountsTable = new dynamodb.Table(this, 'AccountsTable', {
       tableName: 'BankAccounts',
-      partitionKey: {
-        name: 'accountId',
-        type: dynamodb.AttributeType.STRING,
-      },
+      partitionKey: { name: 'accountId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      pointInTimeRecoverySpecification: {
-        pointInTimeRecoveryEnabled: true,
-      },
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
 
-    // DynamoDB table for categories
     const categoriesTable = new dynamodb.Table(this, 'CategoriesTable', {
       tableName: 'Categories',
-      partitionKey: {
-        name: 'categoryId',
-        type: dynamodb.AttributeType.STRING,
-      },
+      partitionKey: { name: 'categoryId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      pointInTimeRecoverySpecification: {
-        pointInTimeRecoveryEnabled: true,
-      },
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
 
-    // Lambda function for transactions CRUD operations
-    const transactionsLambda = new lambda.NodejsFunction(
-      this,
-      'TransactionsFunction',
-      {
-        ...defaultFunctionProps('transactions-handler'),
-        environment: {
-          TABLE_NAME: transactionsTable.tableName,
-        },
-      }
-    );
-
-    // Grant DynamoDB permissions to Lambda
-    transactionsTable.grantReadWriteData(transactionsLambda);
-
-    // Lambda function for accounts CRUD operations
-    const accountsLambda = new lambda.NodejsFunction(this, 'AccountsFunction', {
-      ...defaultFunctionProps('accounts-handler'),      
-      environment: {
-        TABLE_NAME: accountsTable.tableName,
-      },
-    });
-
-    // Grant DynamoDB permissions to accounts Lambda
-    accountsTable.grantReadWriteData(accountsLambda);
-
-    // Lambda function for categories CRUD operations
-    const categoriesLambda = new lambda.NodejsFunction(this, 'CategoriesFunction', {
-      ...defaultFunctionProps('categories-handler'),
-      environment: {
-        TABLE_NAME: categoriesTable.tableName,
-      },
-    });
-
-    // Grant DynamoDB permissions to categories Lambda
-    categoriesTable.grantReadWriteData(categoriesLambda);
-
-    // DynamoDB table for budget planner
     const budgetTable = new dynamodb.Table(this, 'BudgetTable', {
       tableName: 'BudgetPlanner',
-      partitionKey: {
-        name: 'budgetId',
-        type: dynamodb.AttributeType.STRING,
-      },
+      partitionKey: { name: 'budgetId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      pointInTimeRecoverySpecification: {
-        pointInTimeRecoveryEnabled: true,
-      },
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
 
     budgetTable.addGlobalSecondaryIndex({
       indexName: 'YearIndex',
-      partitionKey: {
-        name: 'year',
-        type: dynamodb.AttributeType.NUMBER,
-      },
-      sortKey: {
-        name: 'startMonth',
-        type: dynamodb.AttributeType.STRING,
-      },
+      partitionKey: { name: 'year', type: dynamodb.AttributeType.NUMBER },
+      sortKey: { name: 'startMonth', type: dynamodb.AttributeType.STRING },
     });
 
-    // Lambda function for budget CRUD operations
-    const budgetLambda = new lambda.NodejsFunction(this, 'BudgetFunction', {
-      ...defaultFunctionProps('budget-handler'),
-      environment: {
+    // ---------------------------------------------------------------------------
+    // Shared Lambda props
+    // ---------------------------------------------------------------------------
+
+    const commonFnProps = {
+      runtime: awslambda.Runtime.NODEJS_18_X,
+      bundling: { externalModules: ['aws-sdk'] },
+      timeout: cdk.Duration.seconds(30),
+      tracing: awslambda.Tracing.ACTIVE,
+    };
+
+    const fn = (id: string, entry: string, env: Record<string, string> = {}) =>
+      new lambda.NodejsFunction(this, id, {
+        ...commonFnProps,
+        entry,
+        environment: env,
+      });
+
+    const lambdaDir = path.join(__dirname, 'lambdas');
+
+    // ---------------------------------------------------------------------------
+    // Accounts Lambdas
+    // ---------------------------------------------------------------------------
+
+    const accountsCreate = fn(
+      'AccountsCreate',
+      path.join(lambdaDir, 'accounts/create.ts'),
+      { TABLE_NAME: accountsTable.tableName },
+    );
+    const accountsList = fn(
+      'AccountsList',
+      path.join(lambdaDir, 'accounts/list.ts'),
+      { TABLE_NAME: accountsTable.tableName },
+    );
+    const accountsGet = fn(
+      'AccountsGet',
+      path.join(lambdaDir, 'accounts/get.ts'),
+      { TABLE_NAME: accountsTable.tableName },
+    );
+    const accountsUpdate = fn(
+      'AccountsUpdate',
+      path.join(lambdaDir, 'accounts/update.ts'),
+      { TABLE_NAME: accountsTable.tableName },
+    );
+    const accountsDelete = fn(
+      'AccountsDelete',
+      path.join(lambdaDir, 'accounts/delete.ts'),
+      { TABLE_NAME: accountsTable.tableName },
+    );
+
+    accountsTable.grantWriteData(accountsCreate);
+    accountsTable.grantReadData(accountsList);
+    accountsTable.grantReadData(accountsGet);
+    accountsTable.grantReadWriteData(accountsUpdate);
+    accountsTable.grantReadWriteData(accountsDelete);
+
+    // ---------------------------------------------------------------------------
+    // Transactions Lambdas
+    // ---------------------------------------------------------------------------
+
+    const transactionsCreate = fn(
+      'TransactionsCreate',
+      path.join(lambdaDir, 'transactions/create.ts'),
+      { TRANSACTIONS_TABLE: transactionsTable.tableName },
+    );
+    const transactionsList = fn(
+      'TransactionsList',
+      path.join(lambdaDir, 'transactions/list.ts'),
+      { TRANSACTIONS_TABLE: transactionsTable.tableName },
+    );
+    const transactionsGet = fn(
+      'TransactionsGet',
+      path.join(lambdaDir, 'transactions/get.ts'),
+      { TRANSACTIONS_TABLE: transactionsTable.tableName },
+    );
+    const transactionsUpdate = fn(
+      'TransactionsUpdate',
+      path.join(lambdaDir, 'transactions/update.ts'),
+      { TRANSACTIONS_TABLE: transactionsTable.tableName },
+    );
+    const transactionsDelete = fn(
+      'TransactionsDelete',
+      path.join(lambdaDir, 'transactions/delete.ts'),
+      { TRANSACTIONS_TABLE: transactionsTable.tableName },
+    );
+    const transactionsTransfer = fn(
+      'TransactionsTransfer',
+      path.join(lambdaDir, 'transactions/transfer.ts'),
+      { TRANSACTIONS_TABLE: transactionsTable.tableName },
+    );
+    const transactionsBulkUpdate = fn(
+      'TransactionsBulkUpdate',
+      path.join(lambdaDir, 'transactions/bulk-update.ts'),
+      { TRANSACTIONS_TABLE: transactionsTable.tableName },
+    );
+    const transactionsConvert = fn(
+      'TransactionsConvert',
+      path.join(lambdaDir, 'transactions/convert-to-transfer.ts'),
+      { TRANSACTIONS_TABLE: transactionsTable.tableName },
+    );
+
+    transactionsTable.grantWriteData(transactionsCreate);
+    transactionsTable.grantReadData(transactionsList);
+    transactionsTable.grantReadData(transactionsGet);
+    transactionsTable.grantReadWriteData(transactionsUpdate);
+    transactionsTable.grantReadWriteData(transactionsDelete);
+    transactionsTable.grantWriteData(transactionsTransfer);
+    transactionsTable.grantReadWriteData(transactionsBulkUpdate);
+    transactionsTable.grantReadWriteData(transactionsConvert);
+
+    // ---------------------------------------------------------------------------
+    // Categories Lambdas
+    // ---------------------------------------------------------------------------
+
+    const categoriesCreate = fn(
+      'CategoriesCreate',
+      path.join(lambdaDir, 'categories/create.ts'),
+      { TABLE_NAME: categoriesTable.tableName },
+    );
+    const categoriesList = fn(
+      'CategoriesList',
+      path.join(lambdaDir, 'categories/list.ts'),
+      { TABLE_NAME: categoriesTable.tableName },
+    );
+    const categoriesGet = fn(
+      'CategoriesGet',
+      path.join(lambdaDir, 'categories/get.ts'),
+      { TABLE_NAME: categoriesTable.tableName },
+    );
+    const categoriesUpdate = fn(
+      'CategoriesUpdate',
+      path.join(lambdaDir, 'categories/update.ts'),
+      { TABLE_NAME: categoriesTable.tableName },
+    );
+    const categoriesDelete = fn(
+      'CategoriesDelete',
+      path.join(lambdaDir, 'categories/delete.ts'),
+      { TABLE_NAME: categoriesTable.tableName },
+    );
+
+    categoriesTable.grantWriteData(categoriesCreate);
+    categoriesTable.grantReadData(categoriesList);
+    categoriesTable.grantReadData(categoriesGet);
+    categoriesTable.grantReadWriteData(categoriesUpdate);
+    categoriesTable.grantReadWriteData(categoriesDelete);
+
+    // ---------------------------------------------------------------------------
+    // Budget Lambdas
+    // ---------------------------------------------------------------------------
+
+    const budgetCreate = fn(
+      'BudgetCreate',
+      path.join(lambdaDir, 'budget/create.ts'),
+      { TABLE_NAME: budgetTable.tableName },
+    );
+    const budgetList = fn(
+      'BudgetList',
+      path.join(lambdaDir, 'budget/list.ts'),
+      { TABLE_NAME: budgetTable.tableName },
+    );
+    const budgetGet = fn(
+      'BudgetGet',
+      path.join(lambdaDir, 'budget/get.ts'),
+      { TABLE_NAME: budgetTable.tableName },
+    );
+    const budgetUpdate = fn(
+      'BudgetUpdate',
+      path.join(lambdaDir, 'budget/update.ts'),
+      { TABLE_NAME: budgetTable.tableName },
+    );
+    const budgetDelete = fn(
+      'BudgetDelete',
+      path.join(lambdaDir, 'budget/delete.ts'),
+      { TABLE_NAME: budgetTable.tableName },
+    );
+    const budgetComparison = fn(
+      'BudgetComparison',
+      path.join(lambdaDir, 'budget/comparison.ts'),
+      {
         TABLE_NAME: budgetTable.tableName,
         TABLE_NAME_TRANSACTIONS: transactionsTable.tableName,
       },
-    });
+    );
 
-    // Grant DynamoDB permissions to budget Lambda
-    budgetTable.grantReadWriteData(budgetLambda);
-    transactionsTable.grantReadData(budgetLambda);
+    budgetTable.grantWriteData(budgetCreate);
+    budgetTable.grantReadData(budgetList);
+    budgetTable.grantReadData(budgetGet);
+    budgetTable.grantReadWriteData(budgetUpdate);
+    budgetTable.grantReadWriteData(budgetDelete);
+    budgetTable.grantReadData(budgetComparison);
+    transactionsTable.grantReadData(budgetComparison);
 
-    // Lambda function for analytics
-    const analyticsLambda = new lambda.NodejsFunction(this, 'AnalyticsFunction', {
-      ...defaultFunctionProps('analytics-handler'),
-      environment: {
-        TABLE_NAME: transactionsTable.tableName,
-      },
-    });
+    // ---------------------------------------------------------------------------
+    // Analytics Lambdas
+    // ---------------------------------------------------------------------------
 
-    // Grant DynamoDB read permissions to analytics Lambda
-    transactionsTable.grantReadData(analyticsLambda);
+    const analyticsGet = fn(
+      'AnalyticsGet',
+      path.join(lambdaDir, 'analytics/get.ts'),
+      { TRANSACTIONS_TABLE: transactionsTable.tableName },
+    );
 
+    transactionsTable.grantReadData(analyticsGet);
+
+    // ---------------------------------------------------------------------------
     // API Gateway
+    // ---------------------------------------------------------------------------
+
     const api = new apigateway.RestApi(this, 'DateTimeApi', {
       restApiName: 'Budget App Service',
       description: 'API to get current date and time',
@@ -239,107 +286,73 @@ export class BackendStack extends cdk.Stack {
       },
     });
 
-    // API Gateway integration with Lambda
-    // const dateTimeIntegration = new apigateway.LambdaIntegration(
-    //   dateTimeLambda
-    // );
-    // api.root.addResource('datetime').addMethod('GET', dateTimeIntegration);
-
-    // Transactions API endpoints
-    const transactionsIntegration = new apigateway.LambdaIntegration(
-      transactionsLambda
-    );
-    const transactionsResource = api.root.addResource('transactions');
-
-    // /transactions - GET (list), POST (create)
-    transactionsResource.addMethod('GET', transactionsIntegration);
-    transactionsResource.addMethod('POST', transactionsIntegration);
-
-    // /transactions/{transactionId} - GET (read), PUT (update), DELETE
-    const transactionResource =
-    transactionsResource.addResource('{transactionId}');
-    transactionResource.addMethod('GET', transactionsIntegration);
-    transactionResource.addMethod('PUT', transactionsIntegration);
-    transactionResource.addMethod('DELETE', transactionsIntegration);
-
-    // /transactions/{transactionId}/convert-to-transfer - PUT (convert to transfer)
-    const convertToTransferResource = transactionResource.addResource('convert-to-transfer');
-    convertToTransferResource.addMethod('PUT', transactionsIntegration);
-
-    // /transactions/bulkUpdate - POST (bulk update categories)
-    const bulkUpdateResource = transactionsResource.addResource('bulkUpdate');
-    bulkUpdateResource.addMethod('POST', transactionsIntegration);
-
-    // /transactions/transfer - POST (create transfer)
-    const transferResource = transactionsResource.addResource('transfer');
-    transferResource.addMethod('POST', transactionsIntegration);
-
-    // Accounts API endpoints
-    const accountsIntegration = new apigateway.LambdaIntegration(
-      accountsLambda
-    );
+    // --- Accounts routes ---
     const accountsResource = api.root.addResource('accounts');
+    accountsResource.addMethod('POST', new apigateway.LambdaIntegration(accountsCreate));
+    accountsResource.addMethod('GET', new apigateway.LambdaIntegration(accountsList));
 
-    // /accounts - GET (list), POST (create)
-    accountsResource.addMethod('GET', accountsIntegration);
-    accountsResource.addMethod('POST', accountsIntegration);
-
-    // /accounts/{accountId} - GET (read), PUT (update), DELETE
     const accountResource = accountsResource.addResource('{accountId}');
-    accountResource.addMethod('GET', accountsIntegration);
-    accountResource.addMethod('PUT', accountsIntegration);
-    accountResource.addMethod('DELETE', accountsIntegration);
+    accountResource.addMethod('GET', new apigateway.LambdaIntegration(accountsGet));
+    accountResource.addMethod('PUT', new apigateway.LambdaIntegration(accountsUpdate));
+    accountResource.addMethod('DELETE', new apigateway.LambdaIntegration(accountsDelete));
 
-    // Categories API endpoints
-    const categoriesIntegration = new apigateway.LambdaIntegration(
-      categoriesLambda
-    );
+    // --- Transactions routes ---
+    const transactionsResource = api.root.addResource('transactions');
+    transactionsResource.addMethod('POST', new apigateway.LambdaIntegration(transactionsCreate));
+    transactionsResource.addMethod('GET', new apigateway.LambdaIntegration(transactionsList));
+
+    // Static sub-resources must be defined before path parameters to avoid routing conflicts
+    const transferResource = transactionsResource.addResource('transfer');
+    transferResource.addMethod('POST', new apigateway.LambdaIntegration(transactionsTransfer));
+
+    const bulkResource = transactionsResource.addResource('bulk');
+    bulkResource.addMethod('PATCH', new apigateway.LambdaIntegration(transactionsBulkUpdate));
+
+    const transactionResource = transactionsResource.addResource('{transactionId}');
+    transactionResource.addMethod('GET', new apigateway.LambdaIntegration(transactionsGet));
+    transactionResource.addMethod('PUT', new apigateway.LambdaIntegration(transactionsUpdate));
+    transactionResource.addMethod('DELETE', new apigateway.LambdaIntegration(transactionsDelete));
+
+    const convertToTransferResource = transactionResource.addResource('convert-to-transfer');
+    convertToTransferResource.addMethod('POST', new apigateway.LambdaIntegration(transactionsConvert));
+
+    // --- Categories routes ---
     const categoriesResource = api.root.addResource('categories');
+    categoriesResource.addMethod('POST', new apigateway.LambdaIntegration(categoriesCreate));
+    categoriesResource.addMethod('GET', new apigateway.LambdaIntegration(categoriesList));
 
-    // /categories - GET (list), POST (create)
-    categoriesResource.addMethod('GET', categoriesIntegration);
-    categoriesResource.addMethod('POST', categoriesIntegration);
-
-    // /categories/{categoryId} - GET (read), PUT (update), DELETE
     const categoryResource = categoriesResource.addResource('{categoryId}');
-    categoryResource.addMethod('GET', categoriesIntegration);
-    categoryResource.addMethod('PUT', categoriesIntegration);
-    categoryResource.addMethod('DELETE', categoriesIntegration);
+    categoryResource.addMethod('GET', new apigateway.LambdaIntegration(categoriesGet));
+    categoryResource.addMethod('PUT', new apigateway.LambdaIntegration(categoriesUpdate));
+    categoryResource.addMethod('DELETE', new apigateway.LambdaIntegration(categoriesDelete));
 
-    // Analytics API endpoints
-    const analyticsIntegration = new apigateway.LambdaIntegration(
-      analyticsLambda
-    );
-    const analyticsResource = api.root.addResource('analytics');
-
-    // /analytics - GET (get analytics data)
-    analyticsResource.addMethod('GET', analyticsIntegration);
-
-    // Budget API endpoints
-    const budgetIntegration = new apigateway.LambdaIntegration(budgetLambda);
+    // --- Budget routes ---
     const budgetResource = api.root.addResource('budget');
+    budgetResource.addMethod('POST', new apigateway.LambdaIntegration(budgetCreate));
+    budgetResource.addMethod('GET', new apigateway.LambdaIntegration(budgetList));
 
-    // /budget - GET (list), POST (create)
-    budgetResource.addMethod('GET', budgetIntegration);
-    budgetResource.addMethod('POST', budgetIntegration);
-
-    // /budget/comparison - GET (must be before {budgetId} to avoid routing conflict)
+    // /budget/comparison must be before {budgetId} to avoid routing conflict
     const budgetComparisonResource = budgetResource.addResource('comparison');
-    budgetComparisonResource.addMethod('GET', budgetIntegration);
+    budgetComparisonResource.addMethod('GET', new apigateway.LambdaIntegration(budgetComparison));
 
-    // /budget/{budgetId} - GET (read), PUT (update), DELETE
     const budgetItemResource = budgetResource.addResource('{budgetId}');
-    budgetItemResource.addMethod('GET', budgetIntegration);
-    budgetItemResource.addMethod('PUT', budgetIntegration);
-    budgetItemResource.addMethod('DELETE', budgetIntegration);
+    budgetItemResource.addMethod('GET', new apigateway.LambdaIntegration(budgetGet));
+    budgetItemResource.addMethod('PUT', new apigateway.LambdaIntegration(budgetUpdate));
+    budgetItemResource.addMethod('DELETE', new apigateway.LambdaIntegration(budgetDelete));
 
-    // Output the API endpoint
+    // --- Analytics routes ---
+    const analyticsResource = api.root.addResource('analytics');
+    analyticsResource.addMethod('GET', new apigateway.LambdaIntegration(analyticsGet));
+
+    // ---------------------------------------------------------------------------
+    // Outputs
+    // ---------------------------------------------------------------------------
+
     new cdk.CfnOutput(this, 'ApiEndpoint', {
       value: api.url,
       description: 'API Gateway endpoint URL',
     });
 
-    // Output the DynamoDB table names
     new cdk.CfnOutput(this, 'TransactionsTableName', {
       value: transactionsTable.tableName,
       description: 'DynamoDB table name for bank transactions',
