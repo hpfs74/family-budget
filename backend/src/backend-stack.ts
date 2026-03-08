@@ -11,6 +11,7 @@ const defaultFunctionProps = (name: string): lambda.NodejsFunctionProps => {
 
     handler: `handler`,
     entry: `backend/src/assets/lambdas/${name}.ts`,
+    depsLockFilePath: 'package-lock.json',
     bundling: {
       minify: true,
       loader: {'.node': 'file'},
@@ -174,6 +175,45 @@ export class BackendStack extends cdk.Stack {
     // Grant DynamoDB permissions to categories Lambda
     categoriesTable.grantReadWriteData(categoriesLambda);
 
+    // DynamoDB table for budget planner
+    const budgetTable = new dynamodb.Table(this, 'BudgetTable', {
+      tableName: 'BudgetPlanner',
+      partitionKey: {
+        name: 'budgetId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
+    });
+
+    budgetTable.addGlobalSecondaryIndex({
+      indexName: 'YearIndex',
+      partitionKey: {
+        name: 'year',
+        type: dynamodb.AttributeType.NUMBER,
+      },
+      sortKey: {
+        name: 'startMonth',
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    // Lambda function for budget CRUD operations
+    const budgetLambda = new lambda.NodejsFunction(this, 'BudgetFunction', {
+      ...defaultFunctionProps('budget-handler'),
+      environment: {
+        TABLE_NAME: budgetTable.tableName,
+        TABLE_NAME_TRANSACTIONS: transactionsTable.tableName,
+      },
+    });
+
+    // Grant DynamoDB permissions to budget Lambda
+    budgetTable.grantReadWriteData(budgetLambda);
+    transactionsTable.grantReadData(budgetLambda);
+
     // Lambda function for analytics
     const analyticsLambda = new lambda.NodejsFunction(this, 'AnalyticsFunction', {
       ...defaultFunctionProps('analytics-handler'),
@@ -275,6 +315,24 @@ export class BackendStack extends cdk.Stack {
     // /analytics - GET (get analytics data)
     analyticsResource.addMethod('GET', analyticsIntegration);
 
+    // Budget API endpoints
+    const budgetIntegration = new apigateway.LambdaIntegration(budgetLambda);
+    const budgetResource = api.root.addResource('budget');
+
+    // /budget - GET (list), POST (create)
+    budgetResource.addMethod('GET', budgetIntegration);
+    budgetResource.addMethod('POST', budgetIntegration);
+
+    // /budget/comparison - GET (must be before {budgetId} to avoid routing conflict)
+    const budgetComparisonResource = budgetResource.addResource('comparison');
+    budgetComparisonResource.addMethod('GET', budgetIntegration);
+
+    // /budget/{budgetId} - GET (read), PUT (update), DELETE
+    const budgetItemResource = budgetResource.addResource('{budgetId}');
+    budgetItemResource.addMethod('GET', budgetIntegration);
+    budgetItemResource.addMethod('PUT', budgetIntegration);
+    budgetItemResource.addMethod('DELETE', budgetIntegration);
+
     // Output the API endpoint
     new cdk.CfnOutput(this, 'ApiEndpoint', {
       value: api.url,
@@ -295,6 +353,11 @@ export class BackendStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'CategoriesTableName', {
       value: categoriesTable.tableName,
       description: 'DynamoDB table name for categories',
+    });
+
+    new cdk.CfnOutput(this, 'BudgetTableName', {
+      value: budgetTable.tableName,
+      description: 'DynamoDB table name for budget planner',
     });
   }
 }

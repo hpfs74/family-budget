@@ -4,6 +4,7 @@ import { Dashboard } from '../components/Dashboard';
 import { BankAccounts } from '../components/BankAccounts';
 import { Categories } from '../components/Categories';
 import { Transactions } from '../components/Transactions';
+import { Budget } from '../components/Budget';
 
 export function App() {
   return (
@@ -13,6 +14,7 @@ export function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/accounts" element={<BankAccounts />} />
         <Route path="/categories" element={<Categories />} />
+        <Route path="/budget" element={<Budget />} />
         <Route path="/transactions" element={<Transactions />} />
       </Routes>
     </div>

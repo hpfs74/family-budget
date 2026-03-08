@@ -44,6 +44,14 @@ export function Navigation() {
           </li>
           <li>
             <Link
+              to="/budget"
+              className={getLinkClasses(location.pathname === '/budget')}
+            >
+              📋 Budget
+            </Link>
+          </li>
+          <li>
+            <Link
               to="/transactions"
               className={getLinkClasses(location.pathname === '/transactions')}
             >
