@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
+import * as codebuild from 'aws-cdk-lib/aws-codebuild';
 import {
   CodePipeline,
   CodePipelineSource,
@@ -25,6 +26,18 @@ export class BudgetPipelineStack extends cdk.Stack {
       pipelineName: 'BudgetAppPipeline',
       selfMutation: true,
       crossAccountKeys: false,
+      // Pin Node 20 for all CodeBuild steps — default image uses Node 18
+      // which is incompatible with Vite 7 and react-router-dom 7
+      codeBuildDefaults: {
+        partialBuildSpec: codebuild.BuildSpec.fromObject({
+          version: '0.2',
+          phases: {
+            install: {
+              'runtime-versions': { nodejs: '20' },
+            },
+          },
+        }),
+      },
       synth: new ShellStep('Synth', {
         input: source,
         commands: [
