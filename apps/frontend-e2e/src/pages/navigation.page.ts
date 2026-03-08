@@ -15,7 +15,7 @@ export class NavigationPage {
     this.dashboardLink = page.getByRole('link', { name: /Dashboard/i });
     this.accountsLink = page.getByRole('link', { name: /Bank Accounts/i });
     this.categoriesLink = page.getByRole('link', { name: /Categories/i });
-    this.budgetLink = page.getByRole('link', { name: /Budget/i });
+    this.budgetLink = page.getByRole('link', { name: /Budget(?! App)/i });
     this.transactionsLink = page.getByRole('link', { name: /Transactions/i });
   }
 
