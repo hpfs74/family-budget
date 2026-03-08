@@ -11,7 +11,6 @@ const api: AxiosInstance = axios.create({
 let createdAccountId: string;
 let createdCategoryId: string;
 let createdBudgetId: string;
-let createdTransactionId: string;
 
 describe('Accounts API', () => {
   it('creates an account', async () => {
@@ -72,6 +71,11 @@ describe('Categories API', () => {
     expect(res.data.name).toBe('E2E Category');
   });
 
+  it('updates the category', async () => {
+    const res = await api.put(`/categories/${createdCategoryId}`, { name: 'Updated E2E Category' });
+    expect(res.status).toBe(200);
+  });
+
   it('deletes the category', async () => {
     const res = await api.delete(`/categories/${createdCategoryId}`);
     expect(res.status).toBe(204);
@@ -79,10 +83,21 @@ describe('Categories API', () => {
 });
 
 describe('Budget API', () => {
+  let budgetCategoryId: string;
+
+  beforeAll(async () => {
+    const res = await api.post('/categories', { name: 'Budget E2E Category', color: '#0000ff' });
+    budgetCategoryId = res.data.categoryId;
+  });
+
+  afterAll(async () => {
+    await api.delete(`/categories/${budgetCategoryId}`);
+  });
+
   it('creates a budget', async () => {
     const res = await api.post('/budget', {
       name: 'E2E Budget',
-      categoryId: 'e2e-category-placeholder',
+      categoryId: budgetCategoryId,
       amount: 500,
       currency: 'EUR',
       type: 'monthly',
@@ -107,6 +122,11 @@ describe('Budget API', () => {
     expect(res.data.name).toBe('E2E Budget');
   });
 
+  it('updates the budget', async () => {
+    const res = await api.put(`/budget/${createdBudgetId}`, { name: 'Updated E2E Budget' });
+    expect(res.status).toBe(200);
+  });
+
   it('deletes the budget', async () => {
     const res = await api.delete(`/budget/${createdBudgetId}`);
     expect(res.status).toBe(204);
@@ -115,6 +135,7 @@ describe('Budget API', () => {
 
 describe('Transactions API', () => {
   let txAccountId: string;
+  let createdTransactionId: string;
 
   beforeAll(async () => {
     const res = await api.post('/accounts', {
