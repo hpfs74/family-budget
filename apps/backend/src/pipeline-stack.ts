@@ -28,14 +28,18 @@ export class BudgetPipelineStack extends cdk.Stack {
       selfMutation: true,
       crossAccountKeys: false,
       pipelineType: PipelineType.V2,
-      // Pin Node 20 for all CodeBuild steps — default image uses Node 18
-      // which is incompatible with Vite 7 and react-router-dom 7
+      // Install Node 24 via nvm — standard:7.0 only ships Node 18/20 pre-installed
       codeBuildDefaults: {
         partialBuildSpec: codebuild.BuildSpec.fromObject({
           version: '0.2',
           phases: {
             install: {
-              'runtime-versions': { nodejs: '20' },
+              commands: [
+                '. $NVM_DIR/nvm.sh',
+                'nvm install 24',
+                'nvm use 24',
+                'nvm alias default 24',
+              ],
             },
           },
         }),
