@@ -75,7 +75,7 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["backend-e2e/**/*"]
+      "exclude": ["apps/backend-e2e/**/*"]
     }
   ],
   "targetDefaults": {

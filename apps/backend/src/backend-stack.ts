@@ -10,7 +10,7 @@ const defaultFunctionProps = (name: string): lambda.NodejsFunctionProps => {
   return {
 
     handler: `handler`,
-    entry: `backend/src/assets/lambdas/${name}.ts`,
+    entry: `apps/backend/src/assets/lambdas/${name}.ts`,
     depsLockFilePath: 'package-lock.json',
     bundling: {
       minify: true,

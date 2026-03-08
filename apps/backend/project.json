@@ -1,7 +1,7 @@
 {
   "name": "@budget-app/backend",
-  "root": "backend",
-  "sourceRoot": "backend/src",
+  "root": "apps/backend",
+  "sourceRoot": "apps/backend/src",
   "projectType": "application",
   "targets": {
     "build": {
@@ -9,15 +9,15 @@
       "outputs": ["{projectRoot}/dist"],
       "defaultConfiguration": "production",
       "options": {
-        "command": "cd backend && npx esbuild src/**/*.ts --bundle --platform=node --format=cjs --outdir=dist --sourcemap",
+        "command": "cd apps/backend && npx esbuild src/**/*.ts --bundle --platform=node --format=cjs --outdir=dist --sourcemap",
         "cwd": "{workspaceRoot}"
       },
       "configurations": {
         "development": {
-          "command": "cd backend && npx esbuild src/**/*.ts --bundle --platform=node --format=cjs --outdir=dist --sourcemap"
+          "command": "cd apps/backend && npx esbuild src/**/*.ts --bundle --platform=node --format=cjs --outdir=dist --sourcemap"
         },
         "production": {
-          "command": "cd backend && npx esbuild src/**/*.ts --bundle --platform=node --format=cjs --outdir=dist --minify"
+          "command": "cd apps/backend && npx esbuild src/**/*.ts --bundle --platform=node --format=cjs --outdir=dist --minify"
         }
       }
     },

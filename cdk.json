@@ -1,8 +1,8 @@
 {
-  "app": "npx tsx backend/src/main.ts",
+  "app": "npx tsx apps/backend/src/main.ts",
   "watch": {
     "include": [
-      "backend/src/**/*.ts"
+      "apps/backend/src/**/*.ts"
     ],
     "exclude": [
       "README.md",
