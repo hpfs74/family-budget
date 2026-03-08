@@ -1,19 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "out-tsc/cypress",
+    "outDir": "out-tsc/playwright",
     "allowJs": true,
-    "types": ["cypress", "node"],
+    "types": ["node"],
     "sourceMap": false
   },
   "include": [
     "**/*.ts",
     "**/*.js",
-    "cypress.config.ts",
-    "**/*.cy.ts",
-    "**/*.cy.tsx",
-    "**/*.cy.js",
-    "**/*.cy.jsx",
+    "playwright.config.ts",
+    "**/*.spec.ts",
     "**/*.d.ts"
   ],
   "exclude": [
