@@ -16,8 +16,8 @@ export class BackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: BackendStackProps) {
     super(scope, id, props);
 
-    const suffix = props?.stackEnv === 'qa' ? '-QA' : '';
     const isQa = props?.stackEnv === 'qa';
+    const suffix = isQa ? '-QA' : '';
 
     // ---------------------------------------------------------------------------
     // DynamoDB tables
