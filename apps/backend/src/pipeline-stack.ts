@@ -36,19 +36,18 @@ export class BudgetPipelineStack extends cdk.Stack {
     });
 
     // ── QA Stage ──────────────────────────────────────────────────────────────
-    const qaStage = pipeline.addStage(
-      new BudgetAppStage(this, 'QA', {
-        env: { account: '495133941005', region: 'eu-south-1' },
-        stackEnv: 'qa',
-      }),
-    );
+    const qaAppStage = new BudgetAppStage(this, 'QA', {
+      env: { account: '495133941005', region: 'eu-south-1' },
+      stackEnv: 'qa',
+    });
+    const qaStage = pipeline.addStage(qaAppStage);
 
     // Step 1: Backend integration tests against QA API Gateway
     qaStage.addPost(
       new CodeBuildStep('BackendE2E', {
         input: source,
         envFromCfnOutputs: {
-          API_BASE_URL: qaStage.apiUrlOutput,
+          API_BASE_URL: qaAppStage.apiUrlOutput,
         },
         commands: [
           'npm ci',
@@ -62,7 +61,7 @@ export class BudgetPipelineStack extends cdk.Stack {
       new CodeBuildStep('PlaywrightE2E', {
         input: source,
         envFromCfnOutputs: {
-          VITE_API_ENDPOINT: qaStage.apiUrlOutput,
+          VITE_API_ENDPOINT: qaAppStage.apiUrlOutput,
         },
         env: {
           CI: 'true',
