@@ -1,44 +1,49 @@
 # Frontend E2E Tests
 
-Cypress end-to-end tests for the `apps/frontend` React application.
+Playwright end-to-end tests for the `apps/frontend` React application.
 
 ## Stack
 
-- **Framework**: Cypress with Vite bundler
-- **Nx integration**: `@nx/cypress`
+- **Framework**: `@playwright/test` (Playwright)
+- **Nx integration**: `@nx/playwright`
+- **Browser**: Chromium
 
 ## Commands
 
 ```bash
-# Run e2e tests (starts frontend dev server automatically)
+# Run all e2e tests (starts frontend dev server automatically)
 npx nx e2e @budget-app/frontend-e2e
 
-# Open Cypress interactive runner
-npx nx e2e @budget-app/frontend-e2e --watch
+# Run in headed mode (see the browser)
+npx nx e2e @budget-app/frontend-e2e -- --headed
+
+# Run a single spec file
+npx nx e2e @budget-app/frontend-e2e -- --grep "Navigation"
+
+# Open Playwright interactive UI
+npx nx e2e @budget-app/frontend-e2e -- --ui
 ```
 
-The Cypress config (`cypress.config.ts`) auto-starts the frontend at `http://localhost:4200` before running tests.
+The `webServer` block in `playwright.config.ts` auto-starts the frontend dev server at
+`http://localhost:4200` before running tests. Override the URL via the `BASE_URL` env var.
 
 ## Source Layout
 
 ```
 src/
-  e2e/
-    app.cy.ts            # Main e2e test suite
-  support/
-    app.po.ts            # Page object helpers (selectors)
-    commands.ts          # Custom Cypress commands (e.g. cy.login)
-    e2e.ts               # Global Cypress setup (imported before each spec)
-  fixtures/
-    example.json         # Static fixture data for stubbing
+  pages/
+    navigation.page.ts   # NavigationPage — nav bar locators and goto()
+  navigation.spec.ts     # 6 navigation tests (route links + app title)
 ```
 
 ## Writing Tests
 
-- Place test files under `src/e2e/` with the `.cy.ts` extension.
-- Use page object helpers in `src/support/app.po.ts` for element selectors — keep selectors out of test files.
-- Use `cy.intercept()` to stub API calls so tests don't require a live backend.
+- Place test files under `src/` with the `.spec.ts` extension.
+- Add page objects under `src/pages/` — keep locators out of test files.
+- Use `page.route()` or `page.routeFromHAR()` to stub API calls so tests work without a live backend.
+- Prefer `getByRole` and `getByText` locators over CSS selectors.
 
 ## CI
 
-The CI web server command uses `npx nx run @budget-app/frontend:preview` at base URL `http://localhost:4300`.
+Set `CI=true` so Playwright always starts a fresh dev server (disables `reuseExistingServer`).
+The `e2e-ci` Nx target is also available for sharded/parallelised CI runs.
