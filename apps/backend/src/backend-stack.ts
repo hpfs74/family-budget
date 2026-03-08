@@ -6,20 +6,29 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
+export interface BackendStackProps extends cdk.StackProps {
+  stackEnv?: 'prod' | 'qa';
+}
+
 export class BackendStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  readonly apiUrlOutput: cdk.CfnOutput;
+
+  constructor(scope: Construct, id: string, props?: BackendStackProps) {
     super(scope, id, props);
+
+    const suffix = props?.stackEnv === 'qa' ? '-QA' : '';
+    const isQa = props?.stackEnv === 'qa';
 
     // ---------------------------------------------------------------------------
     // DynamoDB tables
     // ---------------------------------------------------------------------------
 
     const transactionsTable = new dynamodb.Table(this, 'TransactionsTable', {
-      tableName: 'BankTransactions',
+      tableName: `BankTransactions${suffix}`,
       partitionKey: { name: 'account', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'transactionId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: isQa ? cdk.RemovalPolicy.DESTROY : cdk.RemovalPolicy.RETAIN,
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
 
@@ -36,26 +45,26 @@ export class BackendStack extends cdk.Stack {
     });
 
     const accountsTable = new dynamodb.Table(this, 'AccountsTable', {
-      tableName: 'BankAccounts',
+      tableName: `BankAccounts${suffix}`,
       partitionKey: { name: 'accountId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: isQa ? cdk.RemovalPolicy.DESTROY : cdk.RemovalPolicy.RETAIN,
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
 
     const categoriesTable = new dynamodb.Table(this, 'CategoriesTable', {
-      tableName: 'Categories',
+      tableName: `Categories${suffix}`,
       partitionKey: { name: 'categoryId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: isQa ? cdk.RemovalPolicy.DESTROY : cdk.RemovalPolicy.RETAIN,
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
 
     const budgetTable = new dynamodb.Table(this, 'BudgetTable', {
-      tableName: 'BudgetPlanner',
+      tableName: `BudgetPlanner${suffix}`,
       partitionKey: { name: 'budgetId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: isQa ? cdk.RemovalPolicy.DESTROY : cdk.RemovalPolicy.RETAIN,
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
 
@@ -348,7 +357,7 @@ export class BackendStack extends cdk.Stack {
     // Outputs
     // ---------------------------------------------------------------------------
 
-    new cdk.CfnOutput(this, 'ApiEndpoint', {
+    this.apiUrlOutput = new cdk.CfnOutput(this, 'ApiEndpoint', {
       value: api.url,
       description: 'API Gateway endpoint URL',
     });
