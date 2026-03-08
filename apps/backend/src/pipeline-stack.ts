@@ -36,7 +36,6 @@ export class BudgetPipelineStack extends cdk.Stack {
           phases: {
             install: {
               commands: [
-                'npm install -g n',
                 'n 24',
                 'hash -r',
               ],
