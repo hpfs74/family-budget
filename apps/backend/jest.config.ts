@@ -28,4 +28,6 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: 'test-output/jest/coverage',
+  setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
+  testMatch: ['**/__tests__/**/*.spec.ts'],
 };
