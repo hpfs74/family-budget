@@ -58,6 +58,7 @@ interface TransactionModalProps {
   accounts: BankAccount[];
   categories: Category[];
   selectedAccount?: string;
+  similarTransactionsCount?: number;
 }
 
 export function TransactionModal({
@@ -68,7 +69,8 @@ export function TransactionModal({
   editingTransaction,
   accounts,
   categories,
-  selectedAccount
+  selectedAccount,
+  similarTransactionsCount = 0,
 }: TransactionModalProps) {
   const [formData, setFormData] = useState<TransactionFormData>({
     account: '',
@@ -85,6 +87,7 @@ export function TransactionModal({
   const [transferToAccount, setTransferToAccount] = useState('');
   const [linkedTransaction, setLinkedTransaction] = useState<LinkedTransaction | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const [applyToAll, setApplyToAll] = useState(false);
 
   const getCategoryName = (categoryId: string) => {
     const category = categories.find(cat => cat.categoryId === categoryId);
@@ -108,6 +111,7 @@ export function TransactionModal({
         setIsTransfer(!!editingTransaction.transferType);
         setTransferToAccount(editingTransaction.relatedAccount || '');
         setLinkedTransaction(null); // will be re-populated from relatedTransactionId if present
+        setApplyToAll(false);
       } else {
         setFormData({
           account: selectedAccount || '',
@@ -149,18 +153,7 @@ export function TransactionModal({
         return;
       }
 
-      const isCategoryChanged = editingTransaction &&
-        editingTransaction.category !== formData.category;
-
-      let shouldBulkUpdate = false;
-
-      if (isCategoryChanged) {
-        shouldBulkUpdate = window.confirm(
-          `Do you want to update the category to "${getCategoryName(formData.category)}" for all transactions with the description "${editingTransaction.description}"?`
-        );
-      }
-
-      await onSave(formData, editingTransaction, shouldBulkUpdate);
+      await onSave(formData, editingTransaction, applyToAll);
       onClose();
     } catch (error) {
       console.error('Error saving transaction:', error);
@@ -258,7 +251,10 @@ export function TransactionModal({
                 <select
                   name="category"
                   value={formData.category}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    setApplyToAll(false); // reset when category changes
+                  }}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                 >
@@ -269,6 +265,25 @@ export function TransactionModal({
                     </option>
                   ))}
                 </select>
+
+                {/* Bulk apply checkbox — shown only when category changed and similar transactions exist */}
+                {editingTransaction &&
+                  formData.category &&
+                  formData.category !== editingTransaction.category &&
+                  similarTransactionsCount > 0 && (
+                  <label className="flex items-start gap-2 mt-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={applyToAll}
+                      onChange={(e) => setApplyToAll(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-xs text-gray-600" style={{color: 'var(--text-secondary)'}}>
+                      Applica <strong>"{getCategoryName(formData.category)}"</strong> a tutte le{' '}
+                      <strong>{similarTransactionsCount}</strong> transazioni con la stessa descrizione
+                    </span>
+                  </label>
+                )}
               </div>
 
               <div>

@@ -177,7 +177,7 @@ export function Transactions() {
         }
 
         const bulkResult = await bulkResponse.json();
-        alert(`Aggiornate ${bulkResult.updated} transazioni simili!`);
+        showSnackbar(`✅ Categoria aggiornata su ${bulkResult.updated} transazioni simili`, 'success');
       } else {
         // Regular single transaction update or creation
         const url = editingTransaction
@@ -972,6 +972,14 @@ export function Transactions() {
         accounts={accounts}
         categories={categories}
         selectedAccount={selectedAccount}
+        similarTransactionsCount={
+          editingTransaction
+            ? transactions.filter(
+                t => t.description === editingTransaction.description &&
+                     t.transactionId !== editingTransaction.transactionId
+              ).length
+            : 0
+        }
       />
 
       <TransferModal
