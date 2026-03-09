@@ -64,7 +64,7 @@ export function ConfirmationModal({
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full" style={{backgroundColor: 'var(--bg-card)'}}>
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             {confirmButtonType === 'danger' && (
@@ -75,13 +75,13 @@ export function ConfirmationModal({
               </div>
             )}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900" style={{color: 'var(--text-primary)'}}>
                 {title}
               </h3>
             </div>
           </div>
 
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-6" style={{color: 'var(--text-secondary)'}}>
             {message}
           </p>
 

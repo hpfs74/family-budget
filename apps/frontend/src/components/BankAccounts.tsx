@@ -158,8 +158,8 @@ export function BankAccounts() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bank Accounts</h1>
-          <p className="text-gray-600 mt-1">Manage your banking accounts and balances</p>
+          <h1 className="text-3xl font-bold text-gray-900" style={{color: 'var(--text-primary)'}}>Bank Accounts</h1>
+          <p className="text-gray-600 mt-1" style={{color: 'var(--text-secondary)'}}>Manage your banking accounts and balances</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -185,14 +185,14 @@ export function BankAccounts() {
       )}
 
       {showForm && (
-        <div className="mb-8 bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+        <div className="mb-8 bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-200" style={{backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)'}}>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6" style={{color: 'var(--text-primary)'}}>
             {editingAccount ? 'Edit Account' : 'Add New Account'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Account Name
                 </label>
                 <input
@@ -207,7 +207,7 @@ export function BankAccounts() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Account Number
                 </label>
                 <input
@@ -222,7 +222,7 @@ export function BankAccounts() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Bank Name
                 </label>
                 <input
@@ -237,7 +237,7 @@ export function BankAccounts() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Account Type
                 </label>
                 <select
@@ -255,7 +255,7 @@ export function BankAccounts() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Currency
                 </label>
                 <select
@@ -271,7 +271,7 @@ export function BankAccounts() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Initial Balance
                 </label>
                 <input
@@ -312,7 +312,7 @@ export function BankAccounts() {
                   setShowForm(false);
                   setEditingAccount(null);
                 }}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium py-2 px-6 rounded-lg transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium py-2 px-6 rounded-lg transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2" style={{color: 'var(--text-primary)'}}
               >
                 Cancel
               </button>
@@ -328,29 +328,29 @@ export function BankAccounts() {
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No accounts found</h3>
-          <p className="text-gray-500">Get started by creating your first bank account!</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2" style={{color: 'var(--text-primary)'}}>No accounts found</h3>
+          <p className="text-gray-500" style={{color: 'var(--text-secondary)'}}>Get started by creating your first bank account!</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
-            <thead className="bg-gray-50">
+          <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden" style={{backgroundColor: 'var(--bg-card)'}}>
+            <thead className="bg-gray-50" style={{backgroundColor: 'var(--bg-secondary)'}}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Account</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Balance</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Status</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200" style={{borderColor: 'var(--border-color)'}}>
               {accounts.map((account) => (
-                <tr key={account.accountId} className="hover:bg-gray-50 transition-colors duration-200">
+                <tr key={account.accountId} className="hover:bg-gray-50 transition-colors duration-200" style={{borderColor: 'var(--border-color)'}}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{account.accountName}</div>
-                      <div className="text-sm text-gray-500">{account.bankName}</div>
-                      <div className="text-xs text-gray-400">****{account.accountNumber.slice(-4)}</div>
+                      <div className="text-sm font-medium text-gray-900" style={{color: 'var(--text-primary)'}}>{account.accountName}</div>
+                      <div className="text-sm text-gray-500" style={{color: 'var(--text-secondary)'}}>{account.bankName}</div>
+                      <div className="text-xs text-gray-400" style={{color: 'var(--text-secondary)'}}>****{account.accountNumber.slice(-4)}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

@@ -531,8 +531,8 @@ export function Transactions() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bank Transactions</h1>
-          <p className="text-gray-600 mt-1">Track all your financial transactions in one place</p>
+          <h1 className="text-3xl font-bold text-gray-900" style={{color: 'var(--text-primary)'}}>Bank Transactions</h1>
+          <p className="text-gray-600 mt-1" style={{color: 'var(--text-secondary)'}}>Track all your financial transactions in one place</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <button
@@ -561,7 +561,7 @@ export function Transactions() {
 
       {/* Account Selection */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
           Select Account to View Transactions
         </label>
         <div className="max-w-md">
@@ -588,12 +588,12 @@ export function Transactions() {
 
       {/* CSV Import Section */}
       {showImport && (
-        <div className="mb-8 bg-green-50 rounded-lg p-6 shadow-sm border border-green-200">
+        <div className="mb-8 bg-green-50 rounded-lg p-6 shadow-sm border border-green-200" style={{backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)'}}>
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Import Transactions from CSV</h2>
 
           <div className="mb-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Expected CSV Format:</h3>
-            <div className="bg-gray-100 p-3 rounded text-sm text-gray-600 font-mono">
+            <div className="bg-gray-100 p-3 rounded text-sm text-gray-600 font-mono" style={{backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)'}}>
               Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance
             </div>
             <p className="text-sm text-gray-600 mt-2">
@@ -700,8 +700,8 @@ export function Transactions() {
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Select an Account</h3>
-          <p className="text-gray-500">Choose a bank account from the dropdown above to view its transactions.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2" style={{color: 'var(--text-primary)'}}>Select an Account</h3>
+          <p className="text-gray-500" style={{color: 'var(--text-secondary)'}}>Choose a bank account from the dropdown above to view its transactions.</p>
         </div>
       ) : loadingTransactions ? (
         <div className="flex items-center justify-center h-64">
@@ -715,30 +715,30 @@ export function Transactions() {
               <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions found</h3>
-          <p className="text-gray-500">This account has no transactions yet. Create your first transaction!</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2" style={{color: 'var(--text-primary)'}}>No transactions found</h3>
+          <p className="text-gray-500" style={{color: 'var(--text-secondary)'}}>This account has no transactions yet. Create your first transaction!</p>
         </div>
       ) : (
-        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+        <div className="bg-white shadow-sm rounded-lg overflow-hidden" style={{backgroundColor: 'var(--bg-card)'}}>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50" style={{backgroundColor: 'var(--bg-secondary)'}}>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Account</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Fee</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
                 {transactions
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .map((transaction) => (
-                  <tr key={transaction.transactionId} className="hover:bg-gray-50 transition-colors duration-200">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <tr key={transaction.transactionId} className="hover:bg-gray-50 transition-colors duration-200" style={{borderColor: 'var(--border-color)'}}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" style={{color: 'var(--text-primary)'}}>
                       {new Date(transaction.date).toLocaleDateString('en-GB', {
                         day: '2-digit',
                         month: 'short',
@@ -746,15 +746,15 @@ export function Transactions() {
                       })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900" style={{color: 'var(--text-primary)'}}>
                         {getAccountName(transaction.account)}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs">
+                      <div className="text-sm text-gray-900 max-w-xs" style={{color: 'var(--text-primary)'}}>
                         {transaction.description}
                         {transaction.transferType && (
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-xs text-gray-500 mt-1" style={{color: 'var(--text-secondary)'}}>
                             {transaction.transferType === 'outgoing' && '↗️ Transfer to '}
                             {transaction.transferType === 'incoming' && '↙️ Transfer from '}
                             {transaction.relatedAccount && getAccountName(transaction.relatedAccount)}
@@ -771,7 +771,7 @@ export function Transactions() {
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: getCategoryColor(transaction.category) }}
                         />
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm text-gray-900" style={{color: 'var(--text-primary)'}}>
                           {getCategoryName(transaction.category)}
                         </span>
                       </div>

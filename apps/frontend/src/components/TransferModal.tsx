@@ -115,9 +115,9 @@ export function TransferModal({
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" style={{backgroundColor: 'var(--bg-card)'}}>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200" style={{borderColor: 'var(--border-color)'}}>
+          <h2 className="text-xl font-semibold text-gray-900" style={{color: 'var(--text-primary)'}}>
             Create Money Transfer
           </h2>
           <button
@@ -134,7 +134,7 @@ export function TransferModal({
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   From Account
                 </label>
                 <select
@@ -154,7 +154,7 @@ export function TransferModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   To Account
                 </label>
                 <select
@@ -174,7 +174,7 @@ export function TransferModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Amount
                 </label>
                 <input
@@ -191,7 +191,7 @@ export function TransferModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Date
                 </label>
                 <input
@@ -205,7 +205,7 @@ export function TransferModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Currency
                 </label>
                 <select
@@ -221,7 +221,7 @@ export function TransferModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Transfer Fee
                 </label>
                 <input
@@ -238,7 +238,7 @@ export function TransferModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                 Description
               </label>
               <textarea
@@ -253,7 +253,7 @@ export function TransferModal({
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 mt-6">
+          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 mt-6" style={{borderColor: 'var(--border-color)'}}>
             <button
               type="submit"
               disabled={isSaving || !formData.fromAccount || !formData.toAccount || formData.amount <= 0}

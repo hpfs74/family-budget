@@ -127,8 +127,8 @@ export function Categories() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Categories</h1>
-          <p className="text-gray-600 mt-1">Organize your transactions with custom categories</p>
+          <h1 className="text-3xl font-bold text-gray-900" style={{color: 'var(--text-primary)'}}>Categories</h1>
+          <p className="text-gray-600 mt-1" style={{color: 'var(--text-secondary)'}}>Organize your transactions with custom categories</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -154,14 +154,14 @@ export function Categories() {
       )}
 
       {showForm && (
-        <div className="mb-8 bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+        <div className="mb-8 bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-200" style={{backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)'}}>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6" style={{color: 'var(--text-primary)'}}>
             {editingCategory ? 'Edit Category' : 'Add New Category'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Category Name
                 </label>
                 <input
@@ -176,7 +176,7 @@ export function Categories() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Color
                 </label>
                 <div className="flex gap-2">
@@ -198,7 +198,7 @@ export function Categories() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Icon (emoji)
                 </label>
                 <input
@@ -219,14 +219,14 @@ export function Categories() {
                   onChange={handleInputChange}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label className="ml-2 block text-sm font-medium text-gray-700">
+                <label className="ml-2 block text-sm font-medium text-gray-700" style={{color: 'var(--text-secondary)'}}>
                   Active Category
                 </label>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                 Description
               </label>
               <textarea
@@ -268,8 +268,8 @@ export function Categories() {
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
-          <p className="text-gray-500">Create your first category to organize your transactions!</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2" style={{color: 'var(--text-primary)'}}>No categories found</h3>
+          <p className="text-gray-500" style={{color: 'var(--text-secondary)'}}>Create your first category to organize your transactions!</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -277,6 +277,7 @@ export function Categories() {
             <div
               key={category.categoryId}
               className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200"
+              style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -287,7 +288,7 @@ export function Categories() {
                   {category.icon && (
                     <span className="text-2xl">{category.icon}</span>
                   )}
-                  <h3 className="font-semibold text-gray-900 text-lg leading-tight">
+                  <h3 className="font-semibold text-gray-900 text-lg leading-tight" style={{color: 'var(--text-primary)'}}>
                     {category.name}
                   </h3>
                 </div>
@@ -301,12 +302,12 @@ export function Categories() {
               </div>
 
               {category.description && (
-                <p className="text-gray-600 text-sm mb-4 leading-relaxed line-clamp-3">
+                <p className="text-gray-600 text-sm mb-4 leading-relaxed line-clamp-3" style={{color: 'var(--text-secondary)'}}>
                   {category.description}
                 </p>
               )}
 
-              <div className="flex gap-2 pt-3 border-t border-gray-100">
+              <div className="flex gap-2 pt-3 border-t border-gray-100" style={{borderColor: 'var(--border-color)'}}>
                 <button
                   onClick={() => handleEdit(category)}
                   className="flex-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-medium py-2 px-3 rounded-md transition duration-200 text-sm"

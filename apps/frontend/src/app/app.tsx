@@ -8,7 +8,7 @@ import { Budget } from '../components/Budget';
 
 export function App() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen">
       <Navigation />
       <Routes>
         <Route path="/" element={<Dashboard />} />

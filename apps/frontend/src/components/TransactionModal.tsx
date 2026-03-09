@@ -176,9 +176,9 @@ export function TransactionModal({
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" style={{backgroundColor: 'var(--bg-card)'}}>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200" style={{borderColor: 'var(--border-color)'}}>
+          <h2 className="text-xl font-semibold text-gray-900" style={{color: 'var(--text-primary)'}}>
             {editingTransaction ? 'Edit Transaction' : 'Add New Transaction'}
           </h2>
           <button
@@ -195,7 +195,7 @@ export function TransactionModal({
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Account
                 </label>
                 <select
@@ -215,7 +215,7 @@ export function TransactionModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Date
                 </label>
                 <input
@@ -229,7 +229,7 @@ export function TransactionModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Category
                 </label>
                 <select
@@ -249,7 +249,7 @@ export function TransactionModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Currency
                 </label>
                 <select
@@ -265,7 +265,7 @@ export function TransactionModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Amount
                   <span className="text-xs text-gray-500 ml-1">(negative for expenses)</span>
                 </label>
@@ -282,7 +282,7 @@ export function TransactionModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                   Fee
                 </label>
                 <input
@@ -298,7 +298,7 @@ export function TransactionModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
                 Description
               </label>
               <textarea
@@ -357,7 +357,7 @@ export function TransactionModal({
             )}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 mt-6">
+          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 mt-6" style={{borderColor: 'var(--border-color)'}}>
             <button
               type="submit"
               disabled={isSaving}

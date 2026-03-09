@@ -457,7 +457,7 @@ export function Budget() {
 
         {/* Summary row */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
             <p className="text-sm font-medium text-gray-500 mb-1">Risparmio annuale previsto</p>
             <p className={`text-2xl font-bold ${plannedSavings >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(plannedSavings)}
@@ -466,7 +466,7 @@ export function Budget() {
               Entrate: {formatCurrency(totalPlannedIncomeYear)} — Spese: {formatCurrency(totalPlannedExpensesYear)}
             </p>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
             <p className="text-sm font-medium text-gray-500 mb-1">Risparmio annuale reale</p>
             <p className={`text-2xl font-bold ${actualSavings >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(actualSavings)}
@@ -484,8 +484,8 @@ export function Budget() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Budget Planner</h1>
-          <p className="text-gray-600 mt-1">Pianifica e confronta il tuo budget</p>
+          <h1 className="text-3xl font-bold text-gray-900" style={{color: 'var(--text-primary)'}}>Budget Planner</h1>
+          <p className="text-gray-600 mt-1" style={{color: 'var(--text-secondary)'}}>Pianifica e confronta il tuo budget</p>
         </div>
         <div className="flex items-center gap-3">
           <label className="text-sm font-medium text-gray-700">Anno:</label>
@@ -508,7 +508,7 @@ export function Budget() {
       )}
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-gray-200 mb-6" style={{borderColor: 'var(--border-color)'}}>
         <nav className="flex space-x-8">
           <button
             onClick={() => setActiveTab('piano')}
@@ -567,14 +567,14 @@ export function Budget() {
                 return (
                   <div key={categoryId} className="mb-6">
                     <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-lg font-semibold text-gray-800">{getCategoryName(categoryId)}</h3>
+                      <h3 className="text-lg font-semibold text-gray-800" style={{color: 'var(--text-primary)'}}>{getCategoryName(categoryId)}</h3>
                       <span className="text-sm font-medium text-gray-500">
                         Subtotale annuo: {formatCurrency(categorySubtotal)}
                       </span>
                     </div>
                     <div className="overflow-x-auto">
-                      <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
-                        <thead className="bg-gray-50">
+                      <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden" style={{backgroundColor: 'var(--bg-card)'}}>
+                        <thead className="bg-gray-50" style={{backgroundColor: 'var(--bg-secondary)'}}>
                           <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
@@ -584,7 +584,7 @@ export function Budget() {
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Azioni</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-gray-200" style={{borderColor: 'var(--border-color)'}}>
                           {items.map(item => (
                             <tr key={item.budgetId} className="hover:bg-gray-50 transition-colors duration-200">
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</td>
@@ -628,9 +628,9 @@ export function Budget() {
                 );
               })}
 
-              <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-200" style={{backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)'}}>
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-900">Totale annuo previsto</span>
+                  <span className="text-lg font-semibold text-gray-900" style={{color: 'var(--text-primary)'}}>Totale annuo previsto</span>
                   <span className="text-xl font-bold text-blue-600">{formatCurrency(monthlyTotal)}</span>
                 </div>
               </div>
@@ -672,19 +672,19 @@ export function Budget() {
             <>
               {/* Summary cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
                   <p className="text-sm font-medium text-gray-500 mb-1">Spese Previste</p>
                   <p className="text-2xl font-bold text-blue-600">
                     {formatCurrency(comparisonData.totalPlannedExpenses)}
                   </p>
                 </div>
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
                   <p className="text-sm font-medium text-gray-500 mb-1">Spese Reali</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {formatCurrency(comparisonData.totalActualExpenses)}
                   </p>
                 </div>
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
                   <p className="text-sm font-medium text-gray-500 mb-1">Delta Spese</p>
                   <p className={`text-2xl font-bold ${
                     comparisonData.totalPlannedExpenses - comparisonData.totalActualExpenses >= 0
@@ -698,19 +698,19 @@ export function Budget() {
               {/* Income summary */}
               {(comparisonData.totalPlannedIncome > 0 || comparisonData.totalActualIncome > 0) && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6">
+                  <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6" style={{backgroundColor: 'var(--bg-card)'}}>
                     <p className="text-sm font-medium text-gray-500 mb-1">Entrate Previste</p>
                     <p className="text-2xl font-bold text-green-600">
                       {formatCurrency(comparisonData.totalPlannedIncome)}
                     </p>
                   </div>
-                  <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6">
+                  <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6" style={{backgroundColor: 'var(--bg-card)'}}>
                     <p className="text-sm font-medium text-gray-500 mb-1">Entrate Reali</p>
                     <p className="text-2xl font-bold text-green-700">
                       {formatCurrency(comparisonData.totalActualIncome)}
                     </p>
                   </div>
-                  <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6">
+                  <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6" style={{backgroundColor: 'var(--bg-card)'}}>
                     <p className="text-sm font-medium text-gray-500 mb-1">Risparmio Mese</p>
                     <p className={`text-2xl font-bold ${
                       (comparisonData.totalActualIncome - comparisonData.totalActualExpenses) >= 0
@@ -731,8 +731,8 @@ export function Budget() {
                 <>
                   <h3 className="text-md font-semibold text-gray-700 mb-3">Spese per categoria</h3>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden" style={{backgroundColor: 'var(--bg-card)'}}>
+                      <thead className="bg-gray-50" style={{backgroundColor: 'var(--bg-secondary)'}}>
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Previsto</th>
@@ -741,7 +741,7 @@ export function Budget() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Progresso</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-gray-200" style={{borderColor: 'var(--border-color)'}}>
                         {comparisonData.categories.map(cat => {
                           const overBudget = cat.planned > 0 && cat.actual > cat.planned;
                           const noBudget = cat.planned === 0;
@@ -796,8 +796,8 @@ export function Budget() {
                 <>
                   <h3 className="text-md font-semibold text-gray-700 mb-3 mt-6">Entrate per categoria</h3>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden" style={{backgroundColor: 'var(--bg-card)'}}>
+                      <thead className="bg-gray-50" style={{backgroundColor: 'var(--bg-secondary)'}}>
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Previsto</th>
@@ -805,7 +805,7 @@ export function Budget() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Differenza</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-gray-200" style={{borderColor: 'var(--border-color)'}}>
                         {comparisonData.incomeCategories.map(cat => (
                           <tr key={cat.categoryId} className="bg-green-50 transition-colors duration-200">
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -844,10 +844,10 @@ export function Budget() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" style={{backgroundColor: 'var(--bg-card)'}}>
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-gray-900" style={{color: 'var(--text-primary)'}}>
                   {editingItem ? 'Modifica voce' : 'Nuova voce di budget'}
                 </h2>
                 <button
@@ -860,7 +860,7 @@ export function Budget() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1" style={{color: 'var(--text-secondary)'}}>Nome</label>
                   <input
                     type="text"
                     value={formData.name}
@@ -872,7 +872,7 @@ export function Budget() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1" style={{color: 'var(--text-secondary)'}}>Categoria</label>
                   <select
                     value={formData.categoryId}
                     onChange={e => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
@@ -888,7 +888,7 @@ export function Budget() {
 
                 {/* Direction toggle */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo movimento</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>Tipo movimento</label>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -916,7 +916,7 @@ export function Budget() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>Tipo</label>
                   <div className="flex gap-4">
                     {([
                       { value: 'monthly', label: 'Mensile tutto l\'anno' },
@@ -940,7 +940,7 @@ export function Budget() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1" style={{color: 'var(--text-secondary)'}}>
                       {formData.direction === 'income' ? 'Importo entrata' : 'Importo mensile'} ({formData.currency === 'GBP' ? '£' : '€'})
                     </label>
                     <input
@@ -954,7 +954,7 @@ export function Budget() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Valuta</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" style={{color: 'var(--text-secondary)'}}>Valuta</label>
                     <select
                       value={formData.currency}
                       onChange={e => setFormData(prev => ({ ...prev, currency: e.target.value }))}
@@ -968,7 +968,7 @@ export function Budget() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mese inizio</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" style={{color: 'var(--text-secondary)'}}>Mese inizio</label>
                     <input
                       type="month"
                       value={formData.startMonth}
@@ -978,7 +978,7 @@ export function Budget() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mese fine</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" style={{color: 'var(--text-secondary)'}}>Mese fine</label>
                     <input
                       type="month"
                       value={formData.endMonth}
@@ -991,7 +991,7 @@ export function Budget() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Note (opzionale)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1" style={{color: 'var(--text-secondary)'}}>Note (opzionale)</label>
                   <input
                     type="text"
                     value={formData.notes}

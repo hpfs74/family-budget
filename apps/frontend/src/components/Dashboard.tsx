@@ -108,8 +108,8 @@ export function Dashboard() {
   const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-medium text-gray-900">{label}</p>
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
+          <p className="font-medium text-gray-900" style={{color: 'var(--text-primary)'}}>{label}</p>
           {payload.map((entry, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.dataKey === 'income' && 'Income: '}
@@ -138,14 +138,14 @@ export function Dashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Financial overview and analytics</p>
+          <h1 className="text-3xl font-bold text-gray-900" style={{color: 'var(--text-primary)'}}>Dashboard</h1>
+          <p className="text-gray-600 mt-1" style={{color: 'var(--text-secondary)'}}>Financial overview and analytics</p>
         </div>
       </div>
 
       {/* Account Selection */}
       <div className="mb-8">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
           Select Account for Analytics
         </label>
         <div className="max-w-md">
@@ -153,6 +153,7 @@ export function Dashboard() {
             value={selectedAccount}
             onChange={(e) => handleAccountChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+            style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)'}}
           >
             <option value="">Choose an account...</option>
             {accounts.filter(acc => acc.isActive).map(account => (
@@ -191,8 +192,8 @@ export function Dashboard() {
               <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm5-18v4h3V3h-3z"/>
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Select an Account</h3>
-          <p className="text-gray-500">Choose a bank account to view financial analytics and insights.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2" style={{color: 'var(--text-primary)'}}>Select an Account</h3>
+          <p className="text-gray-500" style={{color: 'var(--text-secondary)'}}>Choose a bank account to view financial analytics and insights.</p>
         </div>
       ) : loading ? (
         <div className="flex items-center justify-center h-64">
@@ -203,7 +204,7 @@ export function Dashboard() {
         <div className="space-y-8">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
               <div className="flex items-center">
                 <div className="p-2 bg-green-100 rounded-lg">
                   <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,13 +212,13 @@ export function Dashboard() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Income</p>
+                  <p className="text-sm font-medium text-gray-500" style={{color: 'var(--text-secondary)'}}>Total Income</p>
                   <p className="text-2xl font-semibold text-green-600">{formatCurrency(analytics.summary.totalIncome)}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
               <div className="flex items-center">
                 <div className="p-2 bg-red-100 rounded-lg">
                   <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,13 +226,13 @@ export function Dashboard() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Expenses</p>
+                  <p className="text-sm font-medium text-gray-500" style={{color: 'var(--text-secondary)'}}>Total Expenses</p>
                   <p className="text-2xl font-semibold text-red-600">{formatCurrency(analytics.summary.totalExpenses)}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
               <div className="flex items-center">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,7 +240,7 @@ export function Dashboard() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Net Balance</p>
+                  <p className="text-sm font-medium text-gray-500" style={{color: 'var(--text-secondary)'}}>Net Balance</p>
                   <p className={`text-2xl font-semibold ${analytics.summary.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatCurrency(analytics.summary.balance)}
                   </p>
@@ -247,7 +248,7 @@ export function Dashboard() {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
               <div className="flex items-center">
                 <div className="p-2 bg-purple-100 rounded-lg">
                   <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,7 +256,7 @@ export function Dashboard() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Transactions</p>
+                  <p className="text-sm font-medium text-gray-500" style={{color: 'var(--text-secondary)'}}>Transactions</p>
                   <p className="text-2xl font-semibold text-purple-600">{analytics.summary.transactionCount}</p>
                 </div>
               </div>
@@ -265,8 +266,8 @@ export function Dashboard() {
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Monthly Trends Line Chart */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">12-Month Transaction Trends</h3>
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4" style={{color: 'var(--text-primary)'}}>12-Month Transaction Trends</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={analytics.monthlyTrends}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -303,8 +304,8 @@ export function Dashboard() {
             </div>
 
             {/* Category Breakdown Pie Chart */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Spending by Category</h3>
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4" style={{color: 'var(--text-primary)'}}>Spending by Category</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -339,11 +340,11 @@ export function Dashboard() {
                           className="w-3 h-3 rounded-full mr-2"
                           style={{ backgroundColor: colors[index % colors.length] }}
                         ></div>
-                        <span className="text-gray-700">{category.category}</span>
+                        <span className="text-gray-700" style={{color: 'var(--text-primary)'}}>{category.category}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-gray-500">{category.percentage}%</span>
-                        <span className="font-medium text-gray-900">{formatCurrency(category.amount)}</span>
+                        <span className="text-gray-500" style={{color: 'var(--text-secondary)'}}>{category.percentage}%</span>
+                        <span className="font-medium text-gray-900" style={{color: 'var(--text-primary)'}}>{formatCurrency(category.amount)}</span>
                       </div>
                     </div>
                   );
