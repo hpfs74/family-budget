@@ -38,6 +38,7 @@ export const ConvertToTransferSchema = z.object({
   account: z.string().min(1, 'account is required'),
   toAccount: z.string().min(1, 'toAccount is required'),
   categoryId: z.string().optional(),
+  toTransactionId: z.string().optional(), // explicit link — skip auto-search
 });
 
 export type CreateTransactionInput = z.infer<typeof CreateTransactionSchema>;

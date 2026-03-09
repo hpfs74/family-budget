@@ -67,7 +67,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const parsed = validate(ConvertToTransferSchema, raw);
     if (!parsed.success) return parsed.response;
 
-    const { account, toAccount, categoryId } = parsed.data;
+    const { account, toAccount, categoryId, toTransactionId } = parsed.data;
 
     // Load source transaction
     const getResult = await docClient.send(new GetCommand({
@@ -80,12 +80,22 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const transferId = (source['transferId'] as string | undefined) ?? randomUUID();
     const now = new Date().toISOString();
 
-    // Find matching destination transaction
-    const dest = await findMatchingTransaction(
-      toAccount,
-      source['amount'] as number,
-      source['date'] as string,
-    );
+    // Use explicit destination transaction if provided, otherwise auto-search
+    let dest: Record<string, unknown> | null = null;
+    if (toTransactionId) {
+      const destResult = await docClient.send(new GetCommand({
+        TableName: TABLE_NAME,
+        Key: { account: toAccount, transactionId: toTransactionId },
+      }));
+      dest = destResult.Item as Record<string, unknown> | null ?? null;
+      if (!dest) return notFound('Destination transaction not found');
+    } else {
+      dest = await findMatchingTransaction(
+        toAccount,
+        source['amount'] as number,
+        source['date'] as string,
+      );
+    }
 
     // Update source transaction → outgoing
     const sourceUpdates: Record<string, unknown> = {

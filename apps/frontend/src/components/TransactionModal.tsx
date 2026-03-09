@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { TransactionPickerModal } from './TransactionPickerModal';
 
 interface Transaction {
   transactionId: string;
@@ -37,11 +38,22 @@ interface Category {
 
 type TransactionFormData = Omit<Transaction, 'transactionId' | 'createdAt' | 'updatedAt'>;
 
+interface LinkedTransaction {
+  transactionId: string;
+  accountId: string;
+  accountName: string;
+  date: string;
+  subject?: string;
+  description: string;
+  amount: number;
+  currency: string;
+}
+
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (formData: TransactionFormData, editingTransaction: Transaction | null, shouldBulkUpdate: boolean) => Promise<void>;
-  onConvertToTransfer?: (transactionId: string, toAccount: string) => Promise<void>;
+  onConvertToTransfer?: (transactionId: string, toAccount: string, toTransactionId?: string) => Promise<void>;
   editingTransaction: Transaction | null;
   accounts: BankAccount[];
   categories: Category[];
@@ -71,6 +83,8 @@ export function TransactionModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isTransfer, setIsTransfer] = useState(false);
   const [transferToAccount, setTransferToAccount] = useState('');
+  const [linkedTransaction, setLinkedTransaction] = useState<LinkedTransaction | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
 
   const getCategoryName = (categoryId: string) => {
     const category = categories.find(cat => cat.categoryId === categoryId);
@@ -93,6 +107,7 @@ export function TransactionModal({
         // Check if this is already a transfer transaction
         setIsTransfer(!!editingTransaction.transferType);
         setTransferToAccount(editingTransaction.relatedAccount || '');
+        setLinkedTransaction(null); // will be re-populated from relatedTransactionId if present
       } else {
         setFormData({
           account: selectedAccount || '',
@@ -124,8 +139,12 @@ export function TransactionModal({
 
     try {
       // If converting to transfer and we have the conversion function and editing a transaction
-      if (isTransfer && transferToAccount && editingTransaction && onConvertToTransfer && !editingTransaction.transferType) {
-        await onConvertToTransfer(editingTransaction.transactionId, transferToAccount);
+      if (isTransfer && transferToAccount && editingTransaction && onConvertToTransfer) {
+        await onConvertToTransfer(
+          editingTransaction.transactionId,
+          transferToAccount,
+          linkedTransaction?.transactionId,
+        );
         onClose();
         return;
       }
@@ -332,57 +351,163 @@ export function TransactionModal({
               />
             </div>
 
-            {/* Transfer Conversion Option */}
-            {editingTransaction && !editingTransaction.transferType && onConvertToTransfer && (
-              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                <div className="flex items-center mb-3">
-                  <input
-                    type="checkbox"
-                    id="convertToTransfer"
-                    checked={isTransfer}
-                    onChange={(e) => {
-                      setIsTransfer(e.target.checked);
-                      if (e.target.checked) {
-                        const transferCat = categories.find(c => c.name.toLowerCase().includes('transfer'));
-                        if (transferCat) {
-                          setFormData(prev => ({ ...prev, category: transferCat.categoryId }));
-                        }
-                      }
-                    }}
-                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="convertToTransfer" className="ml-2 text-sm font-medium text-purple-700">
-                    💸 Convert this transaction to a money transfer
-                  </label>
-                </div>
-
-                {isTransfer && (
+            {/* Transfer Link Section — always available when editing */}
+            {editingTransaction && onConvertToTransfer && (
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200" style={{backgroundColor: 'var(--bg-secondary)', borderColor: '#c4b5fd'}}>
+                {/* Already a transfer — show current link info */}
+                {editingTransaction.transferType && editingTransaction.transferType !== 'regular' ? (
                   <div>
-                    <label className="block text-sm font-medium text-purple-700 mb-2">
-                      Transfer to Account
-                    </label>
-                    <select
-                      value={transferToAccount}
-                      onChange={(e) => setTransferToAccount(e.target.value)}
-                      required={isTransfer}
-                      className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200"
-                    >
-                      <option value="">Select destination account</option>
-                      {accounts
-                        .filter(acc => acc.isActive && acc.accountId !== editingTransaction.account)
-                        .map(account => (
-                          <option key={account.accountId} value={account.accountId}>
-                            {account.accountName} ({account.currency})
-                          </option>
-                        ))}
-                    </select>
-                    <p className="text-xs text-purple-600 mt-1">
-                      This will create a corresponding incoming transaction in the destination account.
-                    </p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-sm font-medium text-purple-700">
+                        {editingTransaction.transferType === 'outgoing' ? '↗️ Trasferimento uscita' : '↙️ Trasferimento entrata'}
+                      </span>
+                    </div>
+                    {editingTransaction.relatedTransactionId ? (
+                      <div className="bg-white rounded-lg p-3 border border-purple-200 text-sm mb-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <span className="text-xs text-gray-500">ID transazione collegata</span>
+                            <div className="font-mono text-xs text-gray-700 break-all">{editingTransaction.relatedTransactionId}</div>
+                            {linkedTransaction && (
+                              <div className="mt-1 text-xs text-purple-700">
+                                {linkedTransaction.accountName} · {new Date(linkedTransaction.date).toLocaleDateString('it-IT')} · {linkedTransaction.subject || linkedTransaction.description}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowPicker(true)}
+                            className="shrink-0 text-xs bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded transition-colors"
+                          >
+                            Cambia
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-2">
+                        <p className="text-xs text-orange-600 mb-2">⚠️ Nessuna transazione collegata trovata automaticamente.</p>
+                        <button
+                          type="button"
+                          onClick={() => setShowPicker(true)}
+                          className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          🔗 Collega manualmente
+                        </button>
+                      </div>
+                    )}
+                    {linkedTransaction && (
+                      <div className="mt-2">
+                        <select
+                          value={transferToAccount}
+                          onChange={(e) => { setTransferToAccount(e.target.value); setLinkedTransaction(null); }}
+                          className="w-full px-3 py-2 border border-purple-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                        >
+                          {accounts.filter(a => a.isActive).map(a => (
+                            <option key={a.accountId} value={a.accountId}>{a.accountName} ({a.currency})</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
+                ) : (
+                  /* Not yet a transfer — show convert checkbox */
+                  <>
+                    <div className="flex items-center mb-3">
+                      <input
+                        type="checkbox"
+                        id="convertToTransfer"
+                        checked={isTransfer}
+                        onChange={(e) => {
+                          setIsTransfer(e.target.checked);
+                          if (e.target.checked) {
+                            const transferCat = categories.find(c => c.name.toLowerCase().includes('transfer'));
+                            if (transferCat) setFormData(prev => ({ ...prev, category: transferCat.categoryId }));
+                          } else {
+                            setLinkedTransaction(null);
+                          }
+                        }}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="convertToTransfer" className="ml-2 text-sm font-medium text-purple-700">
+                        💸 Segna come trasferimento di denaro
+                      </label>
+                    </div>
+
+                    {isTransfer && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-purple-700 mb-1">Conto di destinazione</label>
+                          <select
+                            value={transferToAccount}
+                            onChange={(e) => { setTransferToAccount(e.target.value); setLinkedTransaction(null); }}
+                            required={isTransfer}
+                            className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
+                          >
+                            <option value="">Seleziona conto...</option>
+                            {accounts
+                              .filter(acc => acc.isActive && acc.accountId !== editingTransaction.account)
+                              .map(account => (
+                                <option key={account.accountId} value={account.accountId}>
+                                  {account.accountName} ({account.currency})
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+
+                        {transferToAccount && (
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-sm font-medium text-purple-700">Transazione collegata</label>
+                              <button
+                                type="button"
+                                onClick={() => setShowPicker(true)}
+                                className="text-xs text-purple-600 hover:text-purple-800 underline"
+                              >
+                                🔍 Cerca e seleziona
+                              </button>
+                            </div>
+                            {linkedTransaction ? (
+                              <div className="bg-white rounded-lg p-3 border border-purple-200 text-sm flex items-center justify-between">
+                                <div>
+                                  <div className="font-medium text-gray-800">{linkedTransaction.subject || linkedTransaction.description}</div>
+                                  <div className="text-xs text-gray-500">{new Date(linkedTransaction.date).toLocaleDateString('it-IT')} · {linkedTransaction.currency === 'GBP' ? '£' : '€'}{Math.abs(linkedTransaction.amount).toFixed(2)}</div>
+                                  <div className="font-mono text-xs text-gray-400 mt-0.5">{linkedTransaction.transactionId}</div>
+                                </div>
+                                <button type="button" onClick={() => setLinkedTransaction(null)} className="text-gray-400 hover:text-gray-600 ml-2">✕</button>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-500 italic">Nessuna selezionata — il sistema cercherà automaticamente per importo simile.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
+
+            {/* Transaction Picker Modal */}
+            <TransactionPickerModal
+              isOpen={showPicker}
+              onClose={() => setShowPicker(false)}
+              onSelect={(tx, account) => {
+                setLinkedTransaction({
+                  transactionId: tx.transactionId,
+                  accountId: account.accountId,
+                  accountName: account.accountName,
+                  date: tx.date,
+                  subject: tx.subject,
+                  description: tx.description,
+                  amount: tx.amount,
+                  currency: tx.currency,
+                });
+                setTransferToAccount(account.accountId);
+                setShowPicker(false);
+              }}
+              accounts={accounts}
+              excludeAccountId={editingTransaction?.account}
+            />
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 mt-6" style={{borderColor: 'var(--border-color)'}}>

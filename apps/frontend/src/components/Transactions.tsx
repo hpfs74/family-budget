@@ -239,7 +239,7 @@ export function Transactions() {
     }
   };
 
-  const handleConvertToTransfer = async (transactionId: string, toAccount: string) => {
+  const handleConvertToTransfer = async (transactionId: string, toAccount: string, toTransactionId?: string) => {
     try {
       const transferCategory = categories.find(c => c.name.toLowerCase().includes('transfer'));
       const response = await fetch(`${apiEndpoint}transactions/${transactionId}/convert-to-transfer?account=${encodeURIComponent(selectedAccount)}`, {
@@ -251,6 +251,7 @@ export function Transactions() {
           account: selectedAccount,
           toAccount,
           ...(transferCategory ? { categoryId: transferCategory.categoryId } : {}),
+          ...(toTransactionId ? { toTransactionId } : {}),
         }),
       });
 
@@ -819,10 +820,13 @@ export function Transactions() {
         <>
         {(searchQuery || filterCategory) && (
           <p className="text-sm text-gray-500 mb-2" style={{color: 'var(--text-secondary)'}}>
-            {transactions.filter(t =>
-              (!searchQuery || t.description.toLowerCase().includes(searchQuery.toLowerCase())) &&
-              (!filterCategory || t.category === filterCategory)
-            ).length} risultati
+            {transactions.filter(t => {
+              const q = searchQuery.toLowerCase();
+              return (
+                (!searchQuery || t.description.toLowerCase().includes(q) || (t.subject ?? '').toLowerCase().includes(q)) &&
+                (!filterCategory || t.category === filterCategory)
+              );
+            }).length} risultati
             {searchQuery && <> per "<strong>{searchQuery}</strong>"</>}
             {filterCategory && <> · categoria: <strong>{getCategoryName(filterCategory)}</strong></>}
           </p>
@@ -843,10 +847,14 @@ export function Transactions() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
                 {transactions
-                  .filter(t =>
-                    (!searchQuery || t.description.toLowerCase().includes(searchQuery.toLowerCase())) &&
-                    (!filterCategory || t.category === filterCategory)
-                  )
+                  .filter(t => {
+                    const q = searchQuery.toLowerCase();
+                    const matchesSearch = !searchQuery ||
+                      t.description.toLowerCase().includes(q) ||
+                      (t.subject ?? '').toLowerCase().includes(q);
+                    const matchesCategory = !filterCategory || t.category === filterCategory;
+                    return matchesSearch && matchesCategory;
+                  })
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .map((transaction) => (
                   <tr
