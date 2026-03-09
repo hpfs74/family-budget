@@ -14,14 +14,12 @@ AWS CDK v2 infrastructure and per-operation Lambda handlers for the family budge
 ## Commands
 
 ```bash
-npm run test:backend     # Run all 88 backend unit tests
+npm run test:backend     # Run all backend unit tests
 npm run build:backend    # Compile TypeScript
 npm run lint:backend     # Lint
 npx cdk synth            # Generate CloudFormation templates (cdk.out/)
 npx cdk diff             # Preview infrastructure changes vs deployed stack
-npx cdk deploy           # Deploy all stacks to AWS
-npx cdk destroy          # Destroy deployed stacks
-npx cdk bootstrap        # One-time CDK bootstrap (first deploy only)
+# DO NOT run cdk deploy manually — use the pipeline
 ```
 
 ## Source Layout
@@ -46,20 +44,45 @@ apps/backend/src/
 
 ## CDK Stacks
 
-| Stack                    | Region      | Purpose                                     |
-|--------------------------|-------------|---------------------------------------------|
-| `BudgetAppBackendStack`  | eu-south-1  | 25 Lambdas + API Gateway + DynamoDB         |
-| `BudgetCertificateStack` | us-east-1   | ACM TLS certificate for CloudFront          |
-| `BudgetFrontendStack`    | eu-south-1  | S3 + CloudFront + Route 53                  |
+The pipeline deploys stacks with environment prefixes (`QA-` and `Prod-`):
+
+| Stack                         | Region      | Purpose                                     |
+|-------------------------------|-------------|---------------------------------------------|
+| `QA-BudgetAppBackendStack`    | eu-south-1  | QA: 25 Lambdas + API Gateway + DynamoDB     |
+| `Prod-BudgetAppBackendStack`  | eu-south-1  | Prod: 25 Lambdas + API Gateway + DynamoDB   |
+| `Prod-BudgetCertificateStack` | us-east-1   | ACM TLS certificate for CloudFront          |
+| `Prod-BudgetFrontendStack`    | eu-south-1  | S3 + CloudFront + Route 53                  |
+| `BudgetPipelineStack`         | eu-south-1  | Self-mutating CodePipeline                  |
 
 ## DynamoDB Tables
 
-| Table           | Partition Key   | Sort Key        | GSIs                              |
-|-----------------|-----------------|-----------------|-----------------------------------|
-| BankAccounts    | `accountId`     | —               | —                                 |
-| BankTransactions| `account`       | `transactionId` | `DateIndex`, `CategoryIndex`      |
-| Categories      | `categoryId`    | —               | —                                 |
-| BudgetPlanner   | `budgetId`      | —               | `YearIndex` (year + startMonth)   |
+| Table            | Partition Key   | Sort Key        | GSIs                              | Notes                        |
+|------------------|-----------------|-----------------|-----------------------------------|------------------------------|
+| BankAccounts     | `accountId`     | —               | —                                 | QA suffix: `-QA`             |
+| BankTransactions | `account`       | `transactionId` | `DateIndex`, `CategoryIndex`      | QA suffix: `-QA`             |
+| Categories       | `categoryId`    | —               | —                                 | QA suffix: `-QA`             |
+| BudgetPlanner    | `budgetId`      | —               | `YearIndex` (year + startMonth)   | QA suffix: `-QA`             |
+
+## BudgetItem Schema
+
+```typescript
+interface BudgetItem {
+  budgetId: string;
+  name: string;
+  categoryId: string;
+  amount: number;          // per month (monthly/periodic) or total (one-time)
+  currency: string;        // "EUR" | "GBP"
+  type: 'monthly' | 'periodic' | 'one-time';
+  direction: 'expense' | 'income';  // default: "expense"
+  startMonth: string;      // "2026-01"
+  endMonth: string;        // "2026-12"
+  year: number;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+```
 
 ## Lambda Pattern
 
@@ -82,33 +105,40 @@ Key conventions:
 
 ## API Endpoints
 
-| Method   | Path                                        | Lambda                        |
-|----------|---------------------------------------------|-------------------------------|
-| GET      | `/accounts`                                 | accounts/list                 |
-| POST     | `/accounts`                                 | accounts/create               |
-| GET      | `/accounts/{accountId}`                     | accounts/get                  |
-| PUT      | `/accounts/{accountId}`                     | accounts/update               |
-| DELETE   | `/accounts/{accountId}`                     | accounts/delete               |
-| GET      | `/transactions`                             | transactions/list             |
-| POST     | `/transactions`                             | transactions/create           |
-| GET      | `/transactions/{transactionId}`             | transactions/get              |
-| PUT      | `/transactions/{transactionId}`             | transactions/update           |
-| DELETE   | `/transactions/{transactionId}`             | transactions/delete           |
-| POST     | `/transactions/transfer`                    | transactions/transfer         |
-| PATCH    | `/transactions/bulk`                        | transactions/bulk-update      |
-| POST     | `/transactions/{transactionId}/convert-to-transfer` | transactions/convert-to-transfer |
-| GET      | `/categories`                               | categories/list               |
-| POST     | `/categories`                               | categories/create             |
-| GET      | `/categories/{categoryId}`                  | categories/get                |
-| PUT      | `/categories/{categoryId}`                  | categories/update             |
-| DELETE   | `/categories/{categoryId}`                  | categories/delete             |
-| GET      | `/budget`                                   | budget/list                   |
-| POST     | `/budget`                                   | budget/create                 |
-| GET      | `/budget/comparison`                        | budget/comparison             |
-| GET      | `/budget/{budgetId}`                        | budget/get                    |
-| PUT      | `/budget/{budgetId}`                        | budget/update                 |
-| DELETE   | `/budget/{budgetId}`                        | budget/delete                 |
-| GET      | `/analytics`                                | analytics/get                 |
+| Method | Path                                                | Lambda                            |
+|--------|-----------------------------------------------------|-----------------------------------|
+| GET    | `/accounts`                                         | accounts/list                     |
+| POST   | `/accounts`                                         | accounts/create                   |
+| GET    | `/accounts/{accountId}`                             | accounts/get                      |
+| PUT    | `/accounts/{accountId}`                             | accounts/update                   |
+| DELETE | `/accounts/{accountId}`                             | accounts/delete                   |
+| GET    | `/transactions?account={id}`                        | transactions/list                 |
+| POST   | `/transactions`                                     | transactions/create               |
+| GET    | `/transactions/{transactionId}?account={id}`        | transactions/get                  |
+| PUT    | `/transactions/{transactionId}`                     | transactions/update               |
+| DELETE | `/transactions/{transactionId}?account={id}`        | transactions/delete               |
+| POST   | `/transactions/transfer`                            | transactions/transfer             |
+| PATCH  | `/transactions/bulk`                                | transactions/bulk-update          |
+| POST   | `/transactions/{transactionId}/convert-to-transfer` | transactions/convert-to-transfer  |
+| GET    | `/categories`                                       | categories/list                   |
+| POST   | `/categories`                                       | categories/create                 |
+| GET    | `/categories/{categoryId}`                          | categories/get                    |
+| PUT    | `/categories/{categoryId}`                          | categories/update                 |
+| DELETE | `/categories/{categoryId}`                          | categories/delete                 |
+| GET    | `/budget`                                           | budget/list                       |
+| POST   | `/budget`                                           | budget/create                     |
+| GET    | `/budget/comparison?year=&[month=]`                 | budget/comparison                 |
+| GET    | `/budget/{budgetId}`                                | budget/get                        |
+| PUT    | `/budget/{budgetId}`                                | budget/update                     |
+| DELETE | `/budget/{budgetId}`                                | budget/delete                     |
+| GET    | `/analytics`                                        | analytics/get                     |
+
+### Key API notes
+
+- `GET /transactions` and `GET|DELETE /transactions/{id}` require `?account={accountId}` query param (DynamoDB composite key)
+- `PATCH /transactions/bulk` payload: `{ account, transactionIds: string[], updates: { category?, ... } }`
+- `GET /budget/comparison` without `month` returns all 12 months; with `?month=03` returns single month
+- `budget/comparison` only counts expenses (negative amounts) as actual spending; income tracked separately
 
 ## CDK Rules
 
@@ -116,3 +146,4 @@ Key conventions:
   ```typescript
   pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true }
   ```
+- `depsLockFilePath` must be `'package-lock.json'` (not pnpm) in `defaultFunctionProps`
