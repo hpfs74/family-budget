@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { PipelineType } from 'aws-cdk-lib/aws-codepipeline';
 import {
   CodePipeline,
@@ -106,6 +107,26 @@ export class BudgetPipelineStack extends cdk.Stack {
           'VITE_API_ENDPOINT=/api/ npm run build',
           'aws s3 sync apps/frontend/dist/ s3://$S3_BUCKET/ --delete',
           'aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DIST_ID --paths "/*"',
+        ],
+        rolePolicyStatements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              's3:ListBucket',
+              's3:GetObject',
+              's3:PutObject',
+              's3:DeleteObject',
+            ],
+            resources: [
+              `arn:aws:s3:::budget-matteo-cool-${BUDGET_APP_ACCOUNT}`,
+              `arn:aws:s3:::budget-matteo-cool-${BUDGET_APP_ACCOUNT}/*`,
+            ],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: ['cloudfront:CreateInvalidation'],
+            resources: ['*'],
+          }),
         ],
       }),
     );
