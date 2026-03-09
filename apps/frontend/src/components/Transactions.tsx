@@ -241,7 +241,7 @@ export function Transactions() {
     try {
       const transferCategory = categories.find(c => c.name.toLowerCase().includes('transfer'));
       const response = await fetch(`${apiEndpoint}transactions/${transactionId}/convert-to-transfer?account=${encodeURIComponent(selectedAccount)}`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
