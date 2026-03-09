@@ -247,6 +247,7 @@ export function Transactions() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          account: selectedAccount,
           toAccount,
           ...(transferCategory ? { categoryId: transferCategory.categoryId } : {}),
         }),
