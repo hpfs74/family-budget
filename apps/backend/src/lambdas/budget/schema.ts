@@ -6,6 +6,7 @@ export const CreateBudgetSchema = z.object({
   amount: z.number().positive('amount must be positive'),
   currency: z.enum(['GBP', 'EUR']),
   type: z.enum(['monthly', 'periodic', 'one-time']),
+  direction: z.enum(['expense', 'income']).default('expense'),
   startMonth: z.string().regex(/^\d{4}-\d{2}$/, 'startMonth must be YYYY-MM'),
   endMonth: z.string().regex(/^\d{4}-\d{2}$/, 'endMonth must be YYYY-MM'),
   year: z.number().int().min(2000).max(2100),

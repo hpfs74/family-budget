@@ -7,6 +7,7 @@ interface BudgetItem {
   amount: number;
   currency: string;
   type: 'monthly' | 'periodic' | 'one-time';
+  direction?: 'expense' | 'income';
   startMonth: string;
   endMonth: string;
   year: number;
@@ -32,8 +33,13 @@ interface ComparisonCategory {
 interface ComparisonMonth {
   month: string;
   categories: ComparisonCategory[];
+  incomeCategories: ComparisonCategory[];
   totalPlanned: number;
   totalActual: number;
+  totalPlannedExpenses: number;
+  totalActualExpenses: number;
+  totalPlannedIncome: number;
+  totalActualIncome: number;
 }
 
 type BudgetFormData = {
@@ -42,6 +48,7 @@ type BudgetFormData = {
   amount: number;
   currency: string;
   type: 'monthly' | 'periodic' | 'one-time';
+  direction: 'expense' | 'income';
   startMonth: string;
   endMonth: string;
   year: number;
@@ -51,8 +58,10 @@ type BudgetFormData = {
 
 const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || 'https://2fq77pd4al.execute-api.eu-south-1.amazonaws.com/prod/';
 
+const monthLabelsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+
 export function Budget() {
-  const [activeTab, setActiveTab] = useState<'piano' | 'confronto'>('piano');
+  const [activeTab, setActiveTab] = useState<'piano' | 'confronto' | 'annuale'>('piano');
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,12 +75,17 @@ export function Budget() {
   const [comparisonData, setComparisonData] = useState<ComparisonMonth | null>(null);
   const [comparisonLoading, setComparisonLoading] = useState(false);
 
+  // Annual chart state
+  const [annualData, setAnnualData] = useState<ComparisonMonth[]>([]);
+  const [annualLoading, setAnnualLoading] = useState(false);
+
   const defaultFormData: BudgetFormData = {
     name: '',
     categoryId: '',
     amount: 0,
     currency: 'EUR',
     type: 'monthly',
+    direction: 'expense',
     startMonth: `${selectedYear}-01`,
     endMonth: `${selectedYear}-12`,
     year: selectedYear,
@@ -111,7 +125,7 @@ export function Budget() {
     try {
       setComparisonLoading(true);
       const response = await fetch(
-        `${apiEndpoint}budget/comparison?year=${selectedYear}&month=${comparisonMonth}`
+        `${apiEndpoint}budget/comparison?year=${selectedYear}&month=${String(comparisonMonth).padStart(2, '0')}`
       );
       if (!response.ok) throw new Error('Failed to fetch comparison');
       const data = await response.json();
@@ -123,6 +137,21 @@ export function Budget() {
       setComparisonLoading(false);
     }
   }, [selectedYear, comparisonMonth]);
+
+  const fetchAnnualData = useCallback(async () => {
+    try {
+      setAnnualLoading(true);
+      const response = await fetch(`${apiEndpoint}budget/comparison?year=${selectedYear}`);
+      if (!response.ok) throw new Error('Failed to fetch annual data');
+      const data = await response.json();
+      setAnnualData(data.months || []);
+      setError('');
+    } catch (err) {
+      setError('Error fetching annual data: ' + (err as Error).message);
+    } finally {
+      setAnnualLoading(false);
+    }
+  }, [selectedYear]);
 
   useEffect(() => {
     fetchCategories();
@@ -138,7 +167,14 @@ export function Budget() {
     }
   }, [activeTab, fetchComparison]);
 
+  useEffect(() => {
+    if (activeTab === 'annuale') {
+      fetchAnnualData();
+    }
+  }, [activeTab, fetchAnnualData]);
+
   const getCategoryName = (categoryId: string) => {
+    if (categoryId === '__uncategorized__') return 'Senza categoria';
     return categories.find(c => c.categoryId === categoryId)?.name || categoryId;
   };
 
@@ -179,6 +215,7 @@ export function Budget() {
       amount: item.amount,
       currency: item.currency,
       type: item.type,
+      direction: item.direction || 'expense',
       startMonth: item.startMonth,
       endMonth: item.endMonth,
       year: item.year,
@@ -251,7 +288,6 @@ export function Budget() {
   // Monthly projected total: sum of all monthly/periodic amounts + one-time spread
   const monthlyTotal = budgetItems.reduce((sum, item) => {
     if (item.type === 'one-time') return sum + item.amount;
-    // Count months in range
     const start = new Date(item.startMonth + '-01');
     const end = new Date(item.endMonth + '-01');
     let months = 0;
@@ -283,6 +319,166 @@ export function Budget() {
       </div>
     );
   }
+
+  // Annual chart renderer
+  const renderAnnualChart = () => {
+    if (annualLoading) {
+      return (
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Caricamento dati annuali...</span>
+        </div>
+      );
+    }
+
+    if (annualData.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">Nessun dato disponibile per questo anno.</p>
+        </div>
+      );
+    }
+
+    const maxValue = Math.max(
+      ...annualData.map(m => Math.max(m.totalPlannedExpenses, m.totalActualExpenses)),
+      1
+    );
+
+    const chartWidth = 800;
+    const chartHeight = 350;
+    const paddingLeft = 70;
+    const paddingRight = 20;
+    const paddingTop = 40;
+    const paddingBottom = 50;
+    const innerWidth = chartWidth - paddingLeft - paddingRight;
+    const innerHeight = chartHeight - paddingTop - paddingBottom;
+
+    const barGroupWidth = innerWidth / 12;
+    const barWidth = barGroupWidth * 0.35;
+    const barGap = barGroupWidth * 0.05;
+
+    // Y-axis ticks
+    const tickCount = 5;
+    const yTicks = Array.from({ length: tickCount + 1 }, (_, i) => Math.round((maxValue / tickCount) * i));
+
+    const totalPlannedExpensesYear = annualData.reduce((s, m) => s + m.totalPlannedExpenses, 0);
+    const totalActualExpensesYear = annualData.reduce((s, m) => s + m.totalActualExpenses, 0);
+    const totalPlannedIncomeYear = annualData.reduce((s, m) => s + m.totalPlannedIncome, 0);
+    const totalActualIncomeYear = annualData.reduce((s, m) => s + m.totalActualIncome, 0);
+
+    const plannedSavings = totalPlannedIncomeYear - totalPlannedExpensesYear;
+    const actualSavings = totalActualIncomeYear - totalActualExpensesYear;
+
+    return (
+      <div>
+        {/* Legend */}
+        <div className="flex items-center gap-6 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-blue-500"></div>
+            <span className="text-sm text-gray-700">Previsto (spese)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-red-500"></div>
+            <span className="text-sm text-gray-700">Reale (spese)</span>
+          </div>
+        </div>
+
+        {/* SVG Chart */}
+        <div className="overflow-x-auto">
+          <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full max-w-4xl" preserveAspectRatio="xMidYMid meet">
+            {/* Y-axis gridlines and labels */}
+            {yTicks.map(tick => {
+              const y = paddingTop + innerHeight - (tick / maxValue) * innerHeight;
+              return (
+                <g key={tick}>
+                  <line x1={paddingLeft} y1={y} x2={chartWidth - paddingRight} y2={y} stroke="#e5e7eb" strokeWidth="1" />
+                  <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#6b7280">
+                    {tick >= 1000 ? `${(tick / 1000).toFixed(0)}k` : tick}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Y-axis label */}
+            <text x={14} y={paddingTop + innerHeight / 2} textAnchor="middle" fontSize="12" fill="#6b7280" transform={`rotate(-90, 14, ${paddingTop + innerHeight / 2})`}>
+              EUR
+            </text>
+
+            {/* Bars */}
+            {annualData.map((m, i) => {
+              const x = paddingLeft + i * barGroupWidth;
+              const plannedH = (m.totalPlannedExpenses / maxValue) * innerHeight;
+              const actualH = (m.totalActualExpenses / maxValue) * innerHeight;
+              const overBudget = m.totalActualExpenses > m.totalPlannedExpenses;
+
+              return (
+                <g key={m.month}>
+                  {/* Planned bar */}
+                  <rect
+                    x={x + barGap}
+                    y={paddingTop + innerHeight - plannedH}
+                    width={barWidth}
+                    height={plannedH}
+                    fill="#3b82f6"
+                    rx="2"
+                  >
+                    <title>{`${monthLabelsShort[i]} - Previsto: ${formatCurrency(m.totalPlannedExpenses)}`}</title>
+                  </rect>
+                  {/* Actual bar */}
+                  <rect
+                    x={x + barGap + barWidth + barGap}
+                    y={paddingTop + innerHeight - actualH}
+                    width={barWidth}
+                    height={actualH}
+                    fill={overBudget ? '#ef4444' : '#22c55e'}
+                    rx="2"
+                  >
+                    <title>{`${monthLabelsShort[i]} - Reale: ${formatCurrency(m.totalActualExpenses)}`}</title>
+                  </rect>
+                  {/* X label */}
+                  <text
+                    x={x + barGroupWidth / 2}
+                    y={chartHeight - paddingBottom + 18}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fill="#6b7280"
+                  >
+                    {monthLabelsShort[i]}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Axes */}
+            <line x1={paddingLeft} y1={paddingTop} x2={paddingLeft} y2={paddingTop + innerHeight} stroke="#9ca3af" strokeWidth="1" />
+            <line x1={paddingLeft} y1={paddingTop + innerHeight} x2={chartWidth - paddingRight} y2={paddingTop + innerHeight} stroke="#9ca3af" strokeWidth="1" />
+          </svg>
+        </div>
+
+        {/* Summary row */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p className="text-sm font-medium text-gray-500 mb-1">Risparmio annuale previsto</p>
+            <p className={`text-2xl font-bold ${plannedSavings >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(plannedSavings)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Entrate: {formatCurrency(totalPlannedIncomeYear)} — Spese: {formatCurrency(totalPlannedExpensesYear)}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p className="text-sm font-medium text-gray-500 mb-1">Risparmio annuale reale</p>
+            <p className={`text-2xl font-bold ${actualSavings >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(actualSavings)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Entrate: {formatCurrency(totalActualIncomeYear)} — Spese: {formatCurrency(totalActualExpensesYear)}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -334,6 +530,16 @@ export function Budget() {
           >
             Confronto Mensile
           </button>
+          <button
+            onClick={() => setActiveTab('annuale')}
+            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'annuale'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Grafico Annuale
+          </button>
         </nav>
       </div>
 
@@ -383,8 +589,15 @@ export function Budget() {
                             <tr key={item.budgetId} className="hover:bg-gray-50 transition-colors duration-200">
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</td>
                               <td className="px-6 py-4 whitespace-nowrap">{getTypeBadge(item.type)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                                {formatCurrency(item.amount, item.currency)}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                                <span className={item.direction === 'income' ? 'text-green-600' : 'text-gray-900'}>
+                                  {item.direction === 'income' ? (
+                                    <span title="Entrata">↑ </span>
+                                  ) : (
+                                    <span className="text-red-500" title="Spesa">↓ </span>
+                                  )}
+                                  {formatCurrency(item.amount, item.currency)}
+                                </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {item.startMonth} → {item.endMonth}
@@ -460,58 +673,141 @@ export function Budget() {
               {/* Summary cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <p className="text-sm font-medium text-gray-500 mb-1">Totale Previsto</p>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Spese Previste</p>
                   <p className="text-2xl font-bold text-blue-600">
-                    {formatCurrency(comparisonData.totalPlanned)}
+                    {formatCurrency(comparisonData.totalPlannedExpenses)}
                   </p>
                 </div>
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <p className="text-sm font-medium text-gray-500 mb-1">Totale Reale</p>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Spese Reali</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(comparisonData.totalActual)}
+                    {formatCurrency(comparisonData.totalActualExpenses)}
                   </p>
                 </div>
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <p className="text-sm font-medium text-gray-500 mb-1">Delta</p>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Delta Spese</p>
                   <p className={`text-2xl font-bold ${
-                    comparisonData.totalPlanned - comparisonData.totalActual >= 0
+                    comparisonData.totalPlannedExpenses - comparisonData.totalActualExpenses >= 0
                       ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {formatCurrency(comparisonData.totalPlanned - comparisonData.totalActual)}
+                    {formatCurrency(comparisonData.totalPlannedExpenses - comparisonData.totalActualExpenses)}
                   </p>
                 </div>
               </div>
 
-              {/* Comparison table */}
+              {/* Income summary */}
+              {(comparisonData.totalPlannedIncome > 0 || comparisonData.totalActualIncome > 0) && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6">
+                    <p className="text-sm font-medium text-gray-500 mb-1">Entrate Previste</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatCurrency(comparisonData.totalPlannedIncome)}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6">
+                    <p className="text-sm font-medium text-gray-500 mb-1">Entrate Reali</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {formatCurrency(comparisonData.totalActualIncome)}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6">
+                    <p className="text-sm font-medium text-gray-500 mb-1">Risparmio Mese</p>
+                    <p className={`text-2xl font-bold ${
+                      (comparisonData.totalActualIncome - comparisonData.totalActualExpenses) >= 0
+                        ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {formatCurrency(comparisonData.totalActualIncome - comparisonData.totalActualExpenses)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Expense comparison table */}
               {comparisonData.categories.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500">Nessun dato disponibile per questo mese.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Previsto</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reale</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Differenza</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Progresso</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {comparisonData.categories.map(cat => {
-                        const overBudget = cat.planned > 0 && cat.actual > cat.planned;
-                        const noBudget = cat.planned === 0;
-                        const percentage = cat.planned > 0
-                          ? Math.min((cat.actual / cat.planned) * 100, 100)
-                          : 0;
-                        const rowColor = noBudget
-                          ? 'bg-gray-50'
-                          : overBudget ? 'bg-red-50' : 'bg-green-50';
+                <>
+                  <h3 className="text-md font-semibold text-gray-700 mb-3">Spese per categoria</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Previsto</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reale</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Differenza</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Progresso</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {comparisonData.categories.map(cat => {
+                          const overBudget = cat.planned > 0 && cat.actual > cat.planned;
+                          const noBudget = cat.planned === 0;
+                          const percentage = cat.planned > 0
+                            ? Math.min((cat.actual / cat.planned) * 100, 100)
+                            : 0;
+                          const rowColor = noBudget
+                            ? 'bg-gray-50'
+                            : overBudget ? 'bg-red-50' : 'bg-green-50';
 
-                        return (
-                          <tr key={cat.categoryId} className={`${rowColor} transition-colors duration-200`}>
+                          return (
+                            <tr key={cat.categoryId} className={`${rowColor} transition-colors duration-200`}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {getCategoryName(cat.categoryId)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {formatCurrency(cat.planned)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {formatCurrency(cat.actual)}
+                              </td>
+                              <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
+                                cat.delta >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {cat.delta >= 0 ? '+' : ''}{formatCurrency(cat.delta)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {cat.planned > 0 ? (
+                                  <div className="w-full bg-gray-200 rounded-full h-3">
+                                    <div
+                                      className={`h-3 rounded-full transition-all duration-300 ${
+                                        overBudget ? 'bg-red-500' : 'bg-green-500'
+                                      }`}
+                                      style={{ width: `${percentage}%` }}
+                                    ></div>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-gray-400">N/A</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              {/* Income comparison table */}
+              {comparisonData.incomeCategories && comparisonData.incomeCategories.length > 0 && (
+                <>
+                  <h3 className="text-md font-semibold text-gray-700 mb-3 mt-6">Entrate per categoria</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white shadow-sm rounded-lg overflow-hidden">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Previsto</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reale</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Differenza</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {comparisonData.incomeCategories.map(cat => (
+                          <tr key={cat.categoryId} className="bg-green-50 transition-colors duration-200">
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                               {getCategoryName(cat.categoryId)}
                             </td>
@@ -526,26 +822,12 @@ export function Budget() {
                             }`}>
                               {cat.delta >= 0 ? '+' : ''}{formatCurrency(cat.delta)}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {cat.planned > 0 ? (
-                                <div className="w-full bg-gray-200 rounded-full h-3">
-                                  <div
-                                    className={`h-3 rounded-full transition-all duration-300 ${
-                                      overBudget ? 'bg-red-500' : 'bg-green-500'
-                                    }`}
-                                    style={{ width: `${percentage}%` }}
-                                  ></div>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-gray-400">N/A</span>
-                              )}
-                            </td>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </>
           ) : (
@@ -555,6 +837,9 @@ export function Budget() {
           )}
         </div>
       )}
+
+      {/* Grafico Annuale Tab */}
+      {activeTab === 'annuale' && renderAnnualChart()}
 
       {/* Modal */}
       {showModal && (
@@ -601,6 +886,35 @@ export function Budget() {
                   </select>
                 </div>
 
+                {/* Direction toggle */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo movimento</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="direction"
+                        value="expense"
+                        checked={formData.direction === 'expense'}
+                        onChange={() => setFormData(prev => ({ ...prev, direction: 'expense' }))}
+                        className="text-red-600 focus:ring-red-500"
+                      />
+                      <span className="text-sm text-gray-700">Spesa</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="direction"
+                        value="income"
+                        checked={formData.direction === 'income'}
+                        onChange={() => setFormData(prev => ({ ...prev, direction: 'income' }))}
+                        className="text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm text-gray-700">Entrata</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
                   <div className="flex gap-4">
@@ -626,7 +940,9 @@ export function Budget() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Importo ({formData.currency === 'GBP' ? '£' : '€'})</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {formData.direction === 'income' ? 'Importo entrata' : 'Importo mensile'} ({formData.currency === 'GBP' ? '£' : '€'})
+                    </label>
                     <input
                       type="number"
                       step="0.01"
