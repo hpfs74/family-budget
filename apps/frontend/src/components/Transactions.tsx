@@ -149,13 +149,18 @@ export function Transactions() {
     try {
       // If bulk update is requested, call the bulk update endpoint
       if (shouldBulkUpdate && editingTransaction) {
-        const bulkResponse = await fetch(`${apiEndpoint}transactions/bulkUpdate`, {
-          method: 'POST',
+        // Collect IDs of all similar transactions (same description + same account)
+        const similarIds = transactions
+          .filter(t => t.description === editingTransaction.description && t.account === editingTransaction.account)
+          .map(t => t.transactionId);
+
+        const bulkResponse = await fetch(`${apiEndpoint}transactions/bulk`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             account: editingTransaction.account,
-            description: editingTransaction.description,
-            newCategory: formData.category
+            transactionIds: similarIds.length > 0 ? similarIds : [editingTransaction.transactionId],
+            updates: { category: formData.category }
           })
         });
 
@@ -165,7 +170,7 @@ export function Transactions() {
         }
 
         const bulkResult = await bulkResponse.json();
-        alert(`Successfully updated ${bulkResult.updatedCount} transactions!`);
+        alert(`Aggiornate ${bulkResult.updated} transazioni simili!`);
       } else {
         // Regular single transaction update or creation
         const url = editingTransaction
