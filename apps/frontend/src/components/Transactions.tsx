@@ -1,3 +1,4 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback } from 'react';
 import Papa from 'papaparse';
 import { TransactionModal } from './TransactionModal';
@@ -66,6 +67,7 @@ interface CSVRow {
 }
 
 export function Transactions() {
+  usePageTitle('Transazioni');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

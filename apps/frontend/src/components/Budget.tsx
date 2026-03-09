@@ -1,3 +1,4 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback } from 'react';
 
 interface BudgetItem {
@@ -61,6 +62,7 @@ const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || 'https://2fq77pd4al.exe
 const monthLabelsShort = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 
 export function Budget() {
+  usePageTitle('Budget');
   const [activeTab, setActiveTab] = useState<'piano' | 'confronto' | 'annuale'>('piano');
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

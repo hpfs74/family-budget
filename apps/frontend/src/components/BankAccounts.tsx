@@ -1,3 +1,4 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback } from 'react';
 
 interface BankAccount {
@@ -16,6 +17,7 @@ interface BankAccount {
 type AccountFormData = Omit<BankAccount, 'accountId' | 'createdAt' | 'updatedAt'>;
 
 export function BankAccounts() {
+  usePageTitle('Conti');
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');

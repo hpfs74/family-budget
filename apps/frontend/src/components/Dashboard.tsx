@@ -1,3 +1,4 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 
@@ -35,6 +36,7 @@ interface DashboardAnalytics {
 }
 
 export function Dashboard() {
+  usePageTitle('Dashboard');
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);

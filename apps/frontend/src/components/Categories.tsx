@@ -1,3 +1,4 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback } from 'react';
 
 interface Category {
@@ -14,6 +15,7 @@ interface Category {
 type CategoryFormData = Omit<Category, 'categoryId' | 'createdAt' | 'updatedAt'>;
 
 export function Categories() {
+  usePageTitle('Categorie');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
