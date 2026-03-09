@@ -54,29 +54,60 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     let totalIncome = 0;
     let totalExpenses = 0;
     const byCategory: Record<string, { income: number; expenses: number }> = {};
+    const byMonth: Record<string, { income: number; expenses: number }> = {};
 
     for (const tx of transactions) {
       const amount = tx.amount ?? 0;
       const cat = tx.category ?? 'uncategorized';
+      const monthKey = (tx.date ?? '').slice(0, 7); // YYYY-MM
 
-      if (!byCategory[cat]) {
-        byCategory[cat] = { income: 0, expenses: 0 };
-      }
+      if (!byCategory[cat]) byCategory[cat] = { income: 0, expenses: 0 };
+      if (!byMonth[monthKey]) byMonth[monthKey] = { income: 0, expenses: 0 };
 
       if (amount > 0) {
         totalIncome += amount;
         byCategory[cat].income += amount;
+        byMonth[monthKey].income += amount;
       } else {
         totalExpenses += Math.abs(amount);
         byCategory[cat].expenses += Math.abs(amount);
+        byMonth[monthKey].expenses += Math.abs(amount);
       }
     }
+
+    // Monthly trends sorted chronologically
+    const monthlyTrends = Object.entries(byMonth)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, { income, expenses }]) => ({
+        month,
+        income: Math.round(income * 100) / 100,
+        expenses: Math.round(expenses * 100) / 100,
+        net: Math.round((income - expenses) * 100) / 100,
+      }));
+
+    // Category breakdown with percentages (expenses only)
+    const categoryBreakdown = Object.entries(byCategory)
+      .map(([category, { expenses }]) => ({ category, amount: Math.round(expenses * 100) / 100 }))
+      .filter(c => c.amount > 0)
+      .sort((a, b) => b.amount - a.amount)
+      .map(c => ({
+        ...c,
+        percentage: totalExpenses > 0 ? Math.round((c.amount / totalExpenses) * 1000) / 10 : 0,
+      }));
 
     return ok({
       totalIncome: Math.round(totalIncome * 100) / 100,
       totalExpenses: Math.round(totalExpenses * 100) / 100,
       netBalance: Math.round((totalIncome - totalExpenses) * 100) / 100,
       byCategory,
+      monthlyTrends,
+      categoryBreakdown,
+      summary: {
+        totalIncome: Math.round(totalIncome * 100) / 100,
+        totalExpenses: Math.round(totalExpenses * 100) / 100,
+        balance: Math.round((totalIncome - totalExpenses) * 100) / 100,
+        transactionCount: transactions.length,
+      },
       transactionCount: transactions.length,
     });
   } catch (error) {

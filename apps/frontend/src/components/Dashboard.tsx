@@ -71,19 +71,16 @@ export function Dashboard() {
 
       const data = await response.json();
 
-      // Transform the data to match our component interface
-      const transformedAnalytics: DashboardAnalytics = {
-        monthlyTrends: data.monthlyTrends.map((item: any) => ({
-          month: item.month,
-          income: item.income,
-          expenses: item.expenses,
-          net: item.income - item.expenses
-        })),
-        categoryBreakdown: data.categoryBreakdown,
-        summary: data.summary
-      };
-
-      setAnalytics(transformedAnalytics);
+      setAnalytics({
+        monthlyTrends: data.monthlyTrends ?? [],
+        categoryBreakdown: data.categoryBreakdown ?? [],
+        summary: data.summary ?? {
+          totalIncome: data.totalIncome ?? 0,
+          totalExpenses: data.totalExpenses ?? 0,
+          balance: data.netBalance ?? 0,
+          transactionCount: data.transactionCount ?? 0,
+        },
+      });
     } catch (err) {
       setError('Error fetching analytics: ' + (err as Error).message);
       setAnalytics(null);
