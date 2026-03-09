@@ -145,5 +145,16 @@ export class BudgetPipelineStack extends cdk.Stack {
         },
       },
     ]);
+
+    // Grant the pipeline role permission to USE the CodeConnections connection
+    // (required for V2 push triggers to fire automatically on GitHub push)
+    pipeline.pipeline.role.addToPrincipalPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'codestar-connections:UseConnection',
+        'codeconnections:UseConnection',
+      ],
+      resources: [CODESTAR_CONNECTION_ARN],
+    }));
   }
 }
