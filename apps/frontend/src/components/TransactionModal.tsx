@@ -320,7 +320,15 @@ export function TransactionModal({
                     type="checkbox"
                     id="convertToTransfer"
                     checked={isTransfer}
-                    onChange={(e) => setIsTransfer(e.target.checked)}
+                    onChange={(e) => {
+                      setIsTransfer(e.target.checked);
+                      if (e.target.checked) {
+                        const transferCat = categories.find(c => c.name.toLowerCase().includes('transfer'));
+                        if (transferCat) {
+                          setFormData(prev => ({ ...prev, category: transferCat.categoryId }));
+                        }
+                      }
+                    }}
                     className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                   />
                   <label htmlFor="convertToTransfer" className="ml-2 text-sm font-medium text-purple-700">

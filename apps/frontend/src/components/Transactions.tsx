@@ -20,6 +20,7 @@ interface Transaction {
   transferId?: string;
   transferType?: 'outgoing' | 'incoming' | 'regular';
   relatedAccount?: string;
+  relatedTransactionId?: string;
 }
 
 interface BankAccount {
@@ -238,16 +239,27 @@ export function Transactions() {
 
   const handleConvertToTransfer = async (transactionId: string, toAccount: string) => {
     try {
+      const transferCategory = categories.find(c => c.name.toLowerCase().includes('transfer'));
       const response = await fetch(`${apiEndpoint}transactions/${transactionId}/convert-to-transfer?account=${encodeURIComponent(selectedAccount)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ toAccount }),
+        body: JSON.stringify({
+          toAccount,
+          ...(transferCategory ? { categoryId: transferCategory.categoryId } : {}),
+        }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to convert transaction to transfer');
+      }
+
+      const result = await response.json();
+      if (result.matched) {
+        showSnackbar(`✅ Transfer linked! Destination transaction found in ${getAccountName(toAccount)}`, 'success');
+      } else {
+        showSnackbar(`⚠️ Transfer marked but no matching transaction found in ${getAccountName(toAccount)}`, 'info');
       }
 
       await fetchTransactions(selectedAccount);
@@ -837,11 +849,28 @@ export function Transactions() {
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 max-w-xs" style={{color: 'var(--text-primary)'}}>
                         {transaction.description}
-                        {transaction.transferType && (
-                          <div className="text-xs text-gray-500 mt-1" style={{color: 'var(--text-secondary)'}}>
-                            {transaction.transferType === 'outgoing' && '↗️ Transfer to '}
-                            {transaction.transferType === 'incoming' && '↙️ Transfer from '}
-                            {transaction.relatedAccount && getAccountName(transaction.relatedAccount)}
+                        {transaction.transferType && transaction.transferType !== 'regular' && (
+                          <div className="mt-1">
+                            {transaction.relatedAccount ? (
+                              <button
+                                onClick={() => {
+                                  handleAccountChange(transaction.relatedAccount!);
+                                }}
+                                className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 hover:underline transition-colors"
+                                title={`Go to ${getAccountName(transaction.relatedAccount)}`}
+                              >
+                                {transaction.transferType === 'outgoing' && <span>↗️ Transfer to</span>}
+                                {transaction.transferType === 'incoming' && <span>↙️ Transfer from</span>}
+                                <span className="font-medium">{getAccountName(transaction.relatedAccount)}</span>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-500">
+                                {transaction.transferType === 'outgoing' ? '↗️ Transfer out' : '↙️ Transfer in'}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>

@@ -36,6 +36,7 @@ export const BulkUpdateSchema = z.object({
 export const ConvertToTransferSchema = z.object({
   account: z.string().min(1, 'account is required'),
   toAccount: z.string().min(1, 'toAccount is required'),
+  categoryId: z.string().optional(),
 });
 
 export type CreateTransactionInput = z.infer<typeof CreateTransactionSchema>;
