@@ -92,5 +92,20 @@ export class BudgetPipelineStack extends cdk.Stack {
         stackEnv: 'prod',
       }),
     );
+
+    // ── V2 trigger: fire on push to main via CodeConnections (no GitHub secrets needed) ──
+    // The CDK L3 CodePipeline construct doesn't expose the source action for addTrigger(),
+    // so we patch the CfnPipeline directly after buildPipeline() forces synthesis.
+    pipeline.buildPipeline();
+    const cfnPipeline = pipeline.pipeline.node.defaultChild as cdk.CfnResource;
+    cfnPipeline.addPropertyOverride('Triggers', [
+      {
+        ProviderType: 'CodeStarSourceConnection',
+        GitConfiguration: {
+          SourceActionName: 'hpfs74_family-budget',
+          Push: [{ Branches: { Includes: ['main'] } }],
+        },
+      },
+    ]);
   }
 }
