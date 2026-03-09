@@ -35,9 +35,17 @@ interface DashboardAnalytics {
   };
 }
 
+interface Category {
+  categoryId: string;
+  name: string;
+  icon?: string;
+  color?: string;
+}
+
 export function Dashboard() {
   usePageTitle('Dashboard');
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,6 +64,22 @@ export function Dashboard() {
     }
   }, [apiEndpoint]);
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await fetch(`${apiEndpoint}categories?isActive=true`);
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const data = await response.json();
+      setCategories(data.categories || []);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  }, [apiEndpoint]);
+
+  const resolveCategoryName = useCallback((categoryId: string): string => {
+    const cat = categories.find(c => c.categoryId === categoryId);
+    return cat ? `${cat.icon ?? ''} ${cat.name}`.trim() : categoryId;
+  }, [categories]);
+
   const fetchAnalytics = useCallback(async (accountId: string) => {
     if (!accountId) {
       setAnalytics(null);
@@ -73,7 +97,10 @@ export function Dashboard() {
 
       setAnalytics({
         monthlyTrends: data.monthlyTrends ?? [],
-        categoryBreakdown: data.categoryBreakdown ?? [],
+        categoryBreakdown: (data.categoryBreakdown ?? []).map((c: CategoryData) => ({
+          ...c,
+          category: resolveCategoryName(c.category),
+        })),
         summary: data.summary ?? {
           totalIncome: data.totalIncome ?? 0,
           totalExpenses: data.totalExpenses ?? 0,
@@ -87,7 +114,7 @@ export function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [apiEndpoint]);
+  }, [apiEndpoint, resolveCategoryName]);
 
 
   const handleAccountChange = (accountId: string) => {
@@ -125,7 +152,8 @@ export function Dashboard() {
 
   useEffect(() => {
     fetchAccounts();
-  }, [fetchAccounts]);
+    fetchCategories();
+  }, [fetchAccounts, fetchCategories]);
 
   useEffect(() => {
     if (selectedAccount) {
