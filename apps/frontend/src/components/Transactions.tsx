@@ -11,6 +11,7 @@ interface Transaction {
   account: string;
   date: string;
   description: string;
+  subject?: string;
   currency: 'GBP' | 'EUR';
   amount: number;
   fee: number;
@@ -847,8 +848,15 @@ export function Transactions() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs" style={{color: 'var(--text-primary)'}}>
-                        {transaction.description}
+                      <div className="text-sm max-w-xs">
+                        {transaction.subject && transaction.subject !== transaction.description ? (
+                          <>
+                            <div className="font-medium text-gray-900" style={{color: 'var(--text-primary)'}}>{transaction.subject}</div>
+                            <div className="text-xs text-gray-500 mt-0.5 truncate" style={{color: 'var(--text-secondary)'}} title={transaction.description}>{transaction.description}</div>
+                          </>
+                        ) : (
+                          <div className="text-gray-900" style={{color: 'var(--text-primary)'}}>{transaction.description}</div>
+                        )}
                         {transaction.transferType && transaction.transferType !== 'regular' && (
                           <div className="mt-1">
                             {transaction.relatedAccount ? (

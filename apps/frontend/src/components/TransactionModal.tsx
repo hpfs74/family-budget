@@ -5,6 +5,7 @@ interface Transaction {
   account: string;
   date: string;
   description: string;
+  subject?: string;
   currency: 'GBP' | 'EUR';
   amount: number;
   fee: number;
@@ -61,6 +62,7 @@ export function TransactionModal({
     account: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
+    subject: '',
     currency: 'GBP',
     amount: 0,
     fee: 0,
@@ -82,6 +84,7 @@ export function TransactionModal({
           account: editingTransaction.account,
           date: editingTransaction.date,
           description: editingTransaction.description,
+          subject: editingTransaction.subject || editingTransaction.description,
           currency: editingTransaction.currency,
           amount: editingTransaction.amount,
           fee: editingTransaction.fee,
@@ -95,6 +98,7 @@ export function TransactionModal({
           account: selectedAccount || '',
           date: new Date().toISOString().split('T')[0],
           description: '',
+          subject: '',
           currency: 'GBP',
           amount: 0,
           fee: 0,
@@ -295,6 +299,22 @@ export function TransactionModal({
                   placeholder="0.00"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
+                Soggetto
+                <span className="text-xs text-gray-400 ml-1">(chi ha ricevuto / inviato)</span>
+              </label>
+              <input
+                type="text"
+                name="subject"
+                value={formData.subject || ''}
+                onChange={handleInputChange}
+                placeholder="Es. Esselunga, Netflix, Stipendio..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                style={{backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', borderColor: 'var(--border-color)'}}
+              />
             </div>
 
             <div>

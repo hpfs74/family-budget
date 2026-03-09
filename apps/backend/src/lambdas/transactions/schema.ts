@@ -4,6 +4,7 @@ export const CreateTransactionSchema = z.object({
   account: z.string().min(1, 'account is required'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
   description: z.string().min(1, 'description is required'),
+  subject: z.string().optional(),
   currency: z.enum(['GBP', 'EUR']),
   amount: z.number().finite(),
   fee: z.number().default(0),
