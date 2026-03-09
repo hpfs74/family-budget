@@ -18,6 +18,8 @@ interface FrontendStackProps extends cdk.StackProps {
 export class FrontendStack extends cdk.Stack {
   public readonly bucketName: string;
   public readonly distributionId: string;
+  public readonly bucketNameOutput: cdk.CfnOutput;
+  public readonly distributionIdOutput: cdk.CfnOutput;
 
   constructor(scope: Construct, id: string, props: FrontendStackProps) {
     super(scope, id, props);
@@ -131,12 +133,12 @@ export class FrontendStack extends cdk.Stack {
     });
 
     // ── Outputs ───────────────────────────────────────────────────────
-    new cdk.CfnOutput(this, 'BucketName', {
+    this.bucketNameOutput = new cdk.CfnOutput(this, 'BucketName', {
       value: bucket.bucketName,
       description: 'S3 bucket name for frontend assets',
     });
 
-    new cdk.CfnOutput(this, 'DistributionId', {
+    this.distributionIdOutput = new cdk.CfnOutput(this, 'DistributionId', {
       value: distribution.distributionId,
       description: 'CloudFront distribution ID',
     });

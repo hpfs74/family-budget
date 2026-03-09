@@ -40,14 +40,8 @@ export class BudgetAppStage extends cdk.Stage {
         certificate: certStack.certificate,
       });
 
-      this.bucketNameOutput = new cdk.CfnOutput(this, 'FrontendBucketName', {
-        value: frontendStack.bucketName,
-        exportName: `${id}-FrontendBucketName`,
-      });
-      this.distributionIdOutput = new cdk.CfnOutput(this, 'FrontendDistributionId', {
-        value: frontendStack.distributionId,
-        exportName: `${id}-FrontendDistributionId`,
-      });
+      this.bucketNameOutput = frontendStack.bucketNameOutput;
+      this.distributionIdOutput = frontendStack.distributionIdOutput;
     }
   }
 }
