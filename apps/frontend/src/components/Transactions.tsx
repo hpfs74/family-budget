@@ -1,5 +1,5 @@
 import { usePageTitle } from '../hooks/usePageTitle';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Papa from 'papaparse';
 import { TransactionModal } from './TransactionModal';
 import { TransferModal } from './TransferModal';
@@ -85,6 +85,7 @@ export function Transactions() {
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
+  const [highlightedTransactionId, setHighlightedTransactionId] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState<{
     isOpen: boolean;
     message: string;
@@ -366,11 +367,24 @@ export function Transactions() {
     }
   }, [selectedAccount, fetchTransactions]);
 
+  // Scroll to and highlight the linked transaction after loading
+  useEffect(() => {
+    if (!highlightedTransactionId || loadingTransactions) return;
+    const el = document.getElementById(`tx-${highlightedTransactionId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Clear highlight after 3 seconds
+      const timer = setTimeout(() => setHighlightedTransactionId(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedTransactionId, loadingTransactions, transactions]);
+
   // Handle account selection change
-  const handleAccountChange = (accountId: string) => {
+  const handleAccountChange = (accountId: string, highlightId?: string) => {
     setSelectedAccount(accountId);
     setTransactions([]); // Clear current transactions immediately
     setError(''); // Clear any previous errors
+    setHighlightedTransactionId(highlightId ?? null);
   };
 
   // Parse and import CSV file
@@ -835,7 +849,12 @@ export function Transactions() {
                   )
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .map((transaction) => (
-                  <tr key={transaction.transactionId} className="hover:bg-gray-50 transition-colors duration-200" style={{borderColor: 'var(--border-color)'}}>
+                  <tr
+                    key={transaction.transactionId}
+                    id={`tx-${transaction.transactionId}`}
+                    className={`hover:bg-gray-50 transition-colors duration-500 ${highlightedTransactionId === transaction.transactionId ? 'bg-purple-100 ring-2 ring-inset ring-purple-400' : ''}`}
+                    style={{borderColor: 'var(--border-color)'}}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" style={{color: 'var(--text-primary)'}}>
                       {new Date(transaction.date).toLocaleDateString('en-GB', {
                         day: '2-digit',
@@ -863,7 +882,7 @@ export function Transactions() {
                             {transaction.relatedAccount ? (
                               <button
                                 onClick={() => {
-                                  handleAccountChange(transaction.relatedAccount!);
+                                  handleAccountChange(transaction.relatedAccount!, transaction.relatedTransactionId);
                                 }}
                                 className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 hover:underline transition-colors"
                                 title={`Go to ${getAccountName(transaction.relatedAccount)}`}
