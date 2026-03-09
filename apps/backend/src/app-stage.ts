@@ -13,6 +13,8 @@ export interface BudgetAppStageProps extends cdk.StageProps {
 
 export class BudgetAppStage extends cdk.Stage {
   readonly apiUrlOutput: cdk.CfnOutput;
+  readonly bucketNameOutput?: cdk.CfnOutput;
+  readonly distributionIdOutput?: cdk.CfnOutput;
 
   constructor(scope: Construct, id: string, props: BudgetAppStageProps) {
     super(scope, id, props);
@@ -32,10 +34,19 @@ export class BudgetAppStage extends cdk.Stage {
         env: { account, region: 'us-east-1' },
       });
 
-      new FrontendStack(this, 'BudgetFrontendStack', {
+      const frontendStack = new FrontendStack(this, 'BudgetFrontendStack', {
         env: { account, region: 'eu-south-1' },
         crossRegionReferences: true,
         certificate: certStack.certificate,
+      });
+
+      this.bucketNameOutput = new cdk.CfnOutput(this, 'FrontendBucketName', {
+        value: frontendStack.bucketName,
+        exportName: `${id}-FrontendBucketName`,
+      });
+      this.distributionIdOutput = new cdk.CfnOutput(this, 'FrontendDistributionId', {
+        value: frontendStack.distributionId,
+        exportName: `${id}-FrontendDistributionId`,
       });
     }
   }

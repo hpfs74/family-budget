@@ -86,10 +86,27 @@ export class BudgetPipelineStack extends cdk.Stack {
     );
 
     // ── Prod Stage ─────────────────────────────────────────────────────────────
-    pipeline.addStage(
-      new BudgetAppStage(this, 'Prod', {
-        env: { account: BUDGET_APP_ACCOUNT, region: 'eu-south-1' },
-        stackEnv: 'prod',
+    const prodAppStage = new BudgetAppStage(this, 'Prod', {
+      env: { account: BUDGET_APP_ACCOUNT, region: 'eu-south-1' },
+      stackEnv: 'prod',
+    });
+    const prodStage = pipeline.addStage(prodAppStage);
+
+    // Deploy frontend assets: build React app and sync to S3, invalidate CloudFront
+    prodStage.addPost(
+      new CodeBuildStep('DeployFrontend', {
+        input: source,
+        envFromCfnOutputs: {
+          S3_BUCKET:          prodAppStage.bucketNameOutput!,
+          CLOUDFRONT_DIST_ID: prodAppStage.distributionIdOutput!,
+        },
+        commands: [
+          ...NODE24,
+          'npm ci',
+          'VITE_API_ENDPOINT=/api/ npm run build',
+          'aws s3 sync apps/frontend/dist/ s3://$S3_BUCKET/ --delete',
+          'aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DIST_ID --paths "/*"',
+        ],
       }),
     );
 
