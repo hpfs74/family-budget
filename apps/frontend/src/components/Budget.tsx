@@ -882,7 +882,7 @@ export function Budget() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Seleziona categoria</option>
-                    {categories.map(cat => (
+                    {[...categories].sort((a, b) => a.name.localeCompare(b.name)).map(cat => (
                       <option key={cat.categoryId} value={cat.categoryId}>{cat.name}</option>
                     ))}
                   </select>

@@ -81,6 +81,8 @@ export function Transactions() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filterCategory, setFilterCategory] = useState<string>('');
   const [snackbar, setSnackbar] = useState<{
     isOpen: boolean;
     message: string;
@@ -426,8 +428,10 @@ export function Transactions() {
           return;
         }
 
-        // Find default category or use first available category
-        const defaultCategory = categories.find(cat => cat.name.toLowerCase().includes('uncategorized'))
+        // Find default category: prefer "Imported", then "Uncategorized", then first active
+        const defaultCategory = categories.find(cat => cat.name.toLowerCase() === 'imported')
+                                || categories.find(cat => cat.name.toLowerCase().includes('imported'))
+                                || categories.find(cat => cat.name.toLowerCase().includes('uncategorized'))
                                 || categories.find(cat => cat.isActive)
                                 || categories[0];
 
@@ -593,6 +597,64 @@ export function Transactions() {
         )}
       </div>
 
+      {/* Search & Filter Bar */}
+      {selectedAccount && (
+        <div className="mb-6 flex flex-col sm:flex-row gap-3">
+          {/* Text search */}
+          <div className="relative flex-1 max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cerca nella descrizione..."
+              className="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {/* Category filter */}
+          <div className="relative min-w-[200px]">
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 appearance-none pr-8"
+              style={{ backgroundColor: 'var(--bg-card)', color: filterCategory ? 'var(--text-primary)' : 'var(--text-secondary)', borderColor: 'var(--border-color)' }}
+            >
+              <option value="">Tutte le categorie</option>
+              {[...categories].sort((a, b) => a.name.localeCompare(b.name)).map(cat => (
+                <option key={cat.categoryId} value={cat.categoryId}>
+                  {cat.icon} {cat.name}
+                </option>
+              ))}
+            </select>
+            {filterCategory && (
+              <button
+                onClick={() => setFilterCategory('')}
+                className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* CSV Import Section */}
       {showImport && (
         <div className="mb-8 bg-green-50 rounded-lg p-6 shadow-sm border border-green-200" style={{backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)'}}>
@@ -726,6 +788,17 @@ export function Transactions() {
           <p className="text-gray-500" style={{color: 'var(--text-secondary)'}}>This account has no transactions yet. Create your first transaction!</p>
         </div>
       ) : (
+        <>
+        {(searchQuery || filterCategory) && (
+          <p className="text-sm text-gray-500 mb-2" style={{color: 'var(--text-secondary)'}}>
+            {transactions.filter(t =>
+              (!searchQuery || t.description.toLowerCase().includes(searchQuery.toLowerCase())) &&
+              (!filterCategory || t.category === filterCategory)
+            ).length} risultati
+            {searchQuery && <> per "<strong>{searchQuery}</strong>"</>}
+            {filterCategory && <> · categoria: <strong>{getCategoryName(filterCategory)}</strong></>}
+          </p>
+        )}
         <div className="bg-white shadow-sm rounded-lg overflow-hidden" style={{backgroundColor: 'var(--bg-card)'}}>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -742,6 +815,10 @@ export function Transactions() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200" style={{backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)'}}>
                 {transactions
+                  .filter(t =>
+                    (!searchQuery || t.description.toLowerCase().includes(searchQuery.toLowerCase())) &&
+                    (!filterCategory || t.category === filterCategory)
+                  )
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .map((transaction) => (
                   <tr key={transaction.transactionId} className="hover:bg-gray-50 transition-colors duration-200" style={{borderColor: 'var(--border-color)'}}>
@@ -815,6 +892,7 @@ export function Transactions() {
             </table>
           </div>
         </div>
+        </>
       )}
 
       <TransactionModal
