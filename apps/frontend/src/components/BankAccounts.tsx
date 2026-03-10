@@ -1,5 +1,6 @@
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback } from 'react';
+import { authFetch } from '../auth/auth-fetch';
 
 interface BankAccount {
   accountId: string;
@@ -38,7 +39,7 @@ export function BankAccounts() {
   const fetchAccounts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${apiEndpoint}accounts`);
+      const response = await authFetch(`${apiEndpoint}accounts`);
       if (!response.ok) throw new Error('Failed to fetch accounts');
       const data = await response.json();
       setAccounts(data.accounts || []);
@@ -59,7 +60,7 @@ export function BankAccounts() {
 
       const method = editingAccount ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -102,7 +103,7 @@ export function BankAccounts() {
     if (!window.confirm('Are you sure you want to delete this account?')) return;
 
     try {
-      const response = await fetch(`${apiEndpoint}accounts/${accountId}`, {
+      const response = await authFetch(`${apiEndpoint}accounts/${accountId}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete account');

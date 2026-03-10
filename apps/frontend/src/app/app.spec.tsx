@@ -2,6 +2,21 @@ import { render } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import App from './app';
 
+// Mock auth modules
+jest.mock('../auth/tokens', () => ({
+  isAuthenticated: () => true,
+  clearTokens: jest.fn(),
+  buildLogoutUrl: () => 'https://example.com/logout',
+}));
+
+jest.mock('../pages/Login', () => ({
+  Login: () => <div data-testid="login">Mocked Login</div>,
+}));
+
+jest.mock('../auth/callback', () => ({
+  Callback: () => <div data-testid="callback">Mocked Callback</div>,
+}));
+
 // Mock the Dashboard component that uses import.meta
 jest.mock('../components/Dashboard', () => ({
   Dashboard: () => <div data-testid="dashboard">Mocked Dashboard</div>
@@ -34,7 +49,7 @@ describe('App', () => {
     expect(baseElement).toBeTruthy();
   });
 
-  it('should render navigation', () => {
+  it('should render navigation when authenticated', () => {
     const { getByRole } = render(
       <BrowserRouter>
         <App />
@@ -43,7 +58,7 @@ describe('App', () => {
     expect(getByRole('navigation')).toBeTruthy();
   });
 
-  it('should have dashboard component', () => {
+  it('should have dashboard component when authenticated', () => {
     const { getByTestId } = render(
       <BrowserRouter>
         <App />

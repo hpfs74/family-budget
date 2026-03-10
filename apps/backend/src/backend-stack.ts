@@ -3,11 +3,13 @@ import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as awslambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
 export interface BackendStackProps extends cdk.StackProps {
   stackEnv: 'prod' | 'qa';
+  userPool?: cognito.IUserPool;
 }
 
 export class BackendStack extends cdk.Stack {
@@ -288,70 +290,93 @@ export class BackendStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
-        allowHeaders: ['Content-Type'],
+        allowHeaders: ['Content-Type', 'Authorization'],
       },
       deployOptions: {
         tracingEnabled: true,
       },
     });
 
+    // ---------------------------------------------------------------------------
+    // Cognito Authorizer
+    // ---------------------------------------------------------------------------
+
+    const authMethodOptions: apigateway.MethodOptions | undefined =
+      props.userPool
+        ? {
+            authorizer: new apigateway.CognitoUserPoolsAuthorizer(
+              this,
+              'CognitoAuthorizer',
+              { cognitoUserPools: [props.userPool] },
+            ),
+            authorizationType: apigateway.AuthorizationType.COGNITO,
+          }
+        : undefined;
+
+    // Helper: addMethod with optional Cognito authorizer
+    const addMethod = (
+      resource: apigateway.IResource,
+      method: string,
+      integration: apigateway.LambdaIntegration,
+    ) => resource.addMethod(method, integration, authMethodOptions);
+
     // --- Accounts routes ---
     const accountsResource = api.root.addResource('accounts');
-    accountsResource.addMethod('POST', new apigateway.LambdaIntegration(accountsCreate));
-    accountsResource.addMethod('GET', new apigateway.LambdaIntegration(accountsList));
+    addMethod(accountsResource, 'POST', new apigateway.LambdaIntegration(accountsCreate));
+    addMethod(accountsResource, 'GET', new apigateway.LambdaIntegration(accountsList));
 
     const accountResource = accountsResource.addResource('{accountId}');
-    accountResource.addMethod('GET', new apigateway.LambdaIntegration(accountsGet));
-    accountResource.addMethod('PUT', new apigateway.LambdaIntegration(accountsUpdate));
-    accountResource.addMethod('DELETE', new apigateway.LambdaIntegration(accountsDelete));
+    addMethod(accountResource, 'GET', new apigateway.LambdaIntegration(accountsGet));
+    addMethod(accountResource, 'PUT', new apigateway.LambdaIntegration(accountsUpdate));
+    addMethod(accountResource, 'DELETE', new apigateway.LambdaIntegration(accountsDelete));
 
     // --- Transactions routes ---
     const transactionsResource = api.root.addResource('transactions');
-    transactionsResource.addMethod('POST', new apigateway.LambdaIntegration(transactionsCreate));
-    transactionsResource.addMethod('GET', new apigateway.LambdaIntegration(transactionsList));
+    addMethod(transactionsResource, 'POST', new apigateway.LambdaIntegration(transactionsCreate));
+    addMethod(transactionsResource, 'GET', new apigateway.LambdaIntegration(transactionsList));
 
     // Static sub-resources must be defined before path parameters to avoid routing conflicts
     const transferResource = transactionsResource.addResource('transfer');
-    transferResource.addMethod('POST', new apigateway.LambdaIntegration(transactionsTransfer));
+    addMethod(transferResource, 'POST', new apigateway.LambdaIntegration(transactionsTransfer));
 
     const bulkResource = transactionsResource.addResource('bulk');
-    bulkResource.addMethod('PATCH', new apigateway.LambdaIntegration(transactionsBulkUpdate));
+    addMethod(bulkResource, 'PATCH', new apigateway.LambdaIntegration(transactionsBulkUpdate));
 
     const transactionResource = transactionsResource.addResource('{transactionId}');
-    transactionResource.addMethod('GET', new apigateway.LambdaIntegration(transactionsGet));
-    transactionResource.addMethod('PUT', new apigateway.LambdaIntegration(transactionsUpdate));
-    transactionResource.addMethod('DELETE', new apigateway.LambdaIntegration(transactionsDelete));
+    addMethod(transactionResource, 'GET', new apigateway.LambdaIntegration(transactionsGet));
+    addMethod(transactionResource, 'PUT', new apigateway.LambdaIntegration(transactionsUpdate));
+    addMethod(transactionResource, 'DELETE', new apigateway.LambdaIntegration(transactionsDelete));
 
     const convertToTransferResource = transactionResource.addResource('convert-to-transfer');
-    convertToTransferResource.addMethod('POST', new apigateway.LambdaIntegration(transactionsConvert));
+    addMethod(convertToTransferResource, 'POST', new apigateway.LambdaIntegration(transactionsConvert));
 
     // --- Categories routes ---
     const categoriesResource = api.root.addResource('categories');
-    categoriesResource.addMethod('POST', new apigateway.LambdaIntegration(categoriesCreate));
-    categoriesResource.addMethod('GET', new apigateway.LambdaIntegration(categoriesList));
+    addMethod(categoriesResource, 'POST', new apigateway.LambdaIntegration(categoriesCreate));
+    addMethod(categoriesResource, 'GET', new apigateway.LambdaIntegration(categoriesList));
 
     const categoryResource = categoriesResource.addResource('{categoryId}');
-    categoryResource.addMethod('GET', new apigateway.LambdaIntegration(categoriesGet));
-    categoryResource.addMethod('PUT', new apigateway.LambdaIntegration(categoriesUpdate));
-    categoryResource.addMethod('DELETE', new apigateway.LambdaIntegration(categoriesDelete));
+    addMethod(categoryResource, 'GET', new apigateway.LambdaIntegration(categoriesGet));
+    addMethod(categoryResource, 'PUT', new apigateway.LambdaIntegration(categoriesUpdate));
+    addMethod(categoryResource, 'DELETE', new apigateway.LambdaIntegration(categoriesDelete));
 
     // --- Budget routes ---
     const budgetResource = api.root.addResource('budget');
-    budgetResource.addMethod('POST', new apigateway.LambdaIntegration(budgetCreate));
-    budgetResource.addMethod('GET', new apigateway.LambdaIntegration(budgetList));
+    addMethod(budgetResource, 'POST', new apigateway.LambdaIntegration(budgetCreate));
+    addMethod(budgetResource, 'GET', new apigateway.LambdaIntegration(budgetList));
 
     // /budget/comparison must be before {budgetId} to avoid routing conflict
     const budgetComparisonResource = budgetResource.addResource('comparison');
-    budgetComparisonResource.addMethod('GET', new apigateway.LambdaIntegration(budgetComparison));
+    addMethod(budgetComparisonResource, 'GET', new apigateway.LambdaIntegration(budgetComparison));
 
     const budgetItemResource = budgetResource.addResource('{budgetId}');
-    budgetItemResource.addMethod('GET', new apigateway.LambdaIntegration(budgetGet));
-    budgetItemResource.addMethod('PUT', new apigateway.LambdaIntegration(budgetUpdate));
-    budgetItemResource.addMethod('DELETE', new apigateway.LambdaIntegration(budgetDelete));
+    addMethod(budgetItemResource, 'GET', new apigateway.LambdaIntegration(budgetGet));
+    addMethod(budgetItemResource, 'PUT', new apigateway.LambdaIntegration(budgetUpdate));
+    addMethod(budgetItemResource, 'DELETE', new apigateway.LambdaIntegration(budgetDelete));
 
     // --- Analytics routes ---
     const analyticsResource = api.root.addResource('analytics');
-    analyticsResource.addMethod('GET', new apigateway.LambdaIntegration(analyticsGet));
+    addMethod(analyticsResource, 'GET', new apigateway.LambdaIntegration(analyticsGet));
 
     // ---------------------------------------------------------------------------
     // Outputs

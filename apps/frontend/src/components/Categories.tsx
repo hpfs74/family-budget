@@ -1,5 +1,6 @@
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback } from 'react';
+import { authFetch } from '../auth/auth-fetch';
 
 interface Category {
   categoryId: string;
@@ -34,7 +35,7 @@ export function Categories() {
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${apiEndpoint}categories`);
+      const response = await authFetch(`${apiEndpoint}categories`);
       if (!response.ok) throw new Error('Failed to fetch categories');
       const data = await response.json();
       setCategories(data.categories || []);
@@ -55,7 +56,7 @@ export function Categories() {
 
       const method = editingCategory ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -94,7 +95,7 @@ export function Categories() {
     if (!window.confirm('Are you sure you want to delete this category?')) return;
 
     try {
-      const response = await fetch(`${apiEndpoint}categories/${categoryId}`, {
+      const response = await authFetch(`${apiEndpoint}categories/${categoryId}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete category');

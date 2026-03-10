@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { BackendStack } from './backend-stack.js';
+import { AuthStack } from './auth-stack.js';
 import { CertificateStack } from './certificate-stack.js';
 import { FrontendStack } from './frontend-stack.js';
 
@@ -22,10 +23,17 @@ export class BudgetAppStage extends cdk.Stage {
     const account = props.env?.account ?? DEFAULT_ACCOUNT;
     const region = props.env?.region ?? 'eu-south-1';
 
-    const backendStack = new BackendStack(this, 'BudgetAppBackendStack', {
+    const authStack = new AuthStack(this, 'BudgetAuthStack', {
       env: { account, region },
       stackEnv: props.stackEnv,
     });
+
+    const backendStack = new BackendStack(this, 'BudgetAppBackendStack', {
+      env: { account, region },
+      stackEnv: props.stackEnv,
+      userPool: authStack.userPool,
+    });
+    backendStack.addDependency(authStack);
 
     this.apiUrlOutput = backendStack.apiUrlOutput;
 

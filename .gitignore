@@ -50,6 +50,7 @@ test-output
 cdk.out
 
 .env*
+!.env.example
 pnpm-lock.yaml
 
 # Git worktrees

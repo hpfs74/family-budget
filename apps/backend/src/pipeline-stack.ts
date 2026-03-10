@@ -104,6 +104,11 @@ export class BudgetPipelineStack extends cdk.Stack {
         commands: [
           ...NODE24,
           'npm ci',
+          // Read Cognito config from SSM and inject as VITE_ env vars for the frontend build
+          'export VITE_COGNITO_DOMAIN=$(aws ssm get-parameter --name /budget/cognito/domain --query Parameter.Value --output text)',
+          'export VITE_COGNITO_CLIENT_ID=$(aws ssm get-parameter --name /budget/cognito/clientId --query Parameter.Value --output text)',
+          'export VITE_COGNITO_REDIRECT_URI=https://budget.matteo.cool/callback',
+          'export VITE_COGNITO_LOGOUT_URI=https://budget.matteo.cool/login',
           'VITE_API_ENDPOINT=/api/ npm run build',
           'aws s3 sync apps/frontend/dist/ s3://$S3_BUCKET/ --delete',
           'aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DIST_ID --paths "/*"',
@@ -126,6 +131,13 @@ export class BudgetPipelineStack extends cdk.Stack {
             effect: iam.Effect.ALLOW,
             actions: ['cloudfront:CreateInvalidation'],
             resources: ['*'],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: ['ssm:GetParameter'],
+            resources: [
+              `arn:aws:ssm:eu-south-1:${BUDGET_APP_ACCOUNT}:parameter/budget/cognito/*`,
+            ],
           }),
         ],
       }),

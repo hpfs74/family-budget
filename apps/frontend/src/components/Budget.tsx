@@ -1,5 +1,6 @@
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback } from 'react';
+import { authFetch } from '../auth/auth-fetch';
 
 interface BudgetItem {
   budgetId: string;
@@ -99,7 +100,7 @@ export function Budget() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch(`${apiEndpoint}categories`);
+      const response = await authFetch(`${apiEndpoint}categories`);
       if (!response.ok) throw new Error('Failed to fetch categories');
       const data = await response.json();
       setCategories(data.categories || []);
@@ -111,7 +112,7 @@ export function Budget() {
   const fetchBudgetItems = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${apiEndpoint}budget?year=${selectedYear}`);
+      const response = await authFetch(`${apiEndpoint}budget?year=${selectedYear}`);
       if (!response.ok) throw new Error('Failed to fetch budget items');
       const data = await response.json();
       setBudgetItems(data.items || []);
@@ -126,7 +127,7 @@ export function Budget() {
   const fetchComparison = useCallback(async () => {
     try {
       setComparisonLoading(true);
-      const response = await fetch(
+      const response = await authFetch(
         `${apiEndpoint}budget/comparison?year=${selectedYear}&month=${String(comparisonMonth).padStart(2, '0')}`
       );
       if (!response.ok) throw new Error('Failed to fetch comparison');
@@ -143,7 +144,7 @@ export function Budget() {
   const fetchAnnualData = useCallback(async () => {
     try {
       setAnnualLoading(true);
-      const response = await fetch(`${apiEndpoint}budget/comparison?year=${selectedYear}`);
+      const response = await authFetch(`${apiEndpoint}budget/comparison?year=${selectedYear}`);
       if (!response.ok) throw new Error('Failed to fetch annual data');
       const data = await response.json();
       setAnnualData(data.months || []);
@@ -235,7 +236,7 @@ export function Budget() {
         : `${apiEndpoint}budget`;
       const method = editingItem ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -253,7 +254,7 @@ export function Budget() {
   const handleDelete = async (budgetId: string) => {
     if (!window.confirm('Sei sicuro di voler eliminare questa voce?')) return;
     try {
-      const response = await fetch(`${apiEndpoint}budget/${budgetId}`, { method: 'DELETE' });
+      const response = await authFetch(`${apiEndpoint}budget/${budgetId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete budget item');
       await fetchBudgetItems();
     } catch (err) {

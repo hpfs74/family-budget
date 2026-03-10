@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
+import { clearTokens, buildLogoutUrl } from '../auth/tokens';
 
 export function Navigation() {
   const location = useLocation();
@@ -11,6 +12,12 @@ export function Navigation() {
         ? 'text-blue-400 bg-gray-700'
         : 'text-gray-300 hover:text-white hover:bg-gray-600'
     }`;
+  };
+
+  const handleLogout = () => {
+    const logoutUrl = buildLogoutUrl();
+    clearTokens();
+    window.location.href = logoutUrl;
   };
 
   return (
@@ -63,6 +70,14 @@ export function Navigation() {
                 <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
               </svg>
             )}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 hover:bg-gray-600"
+            style={{ color: 'var(--nav-text)' }}
+            title="Logout"
+          >
+            Esci
           </button>
         </div>
       </div>

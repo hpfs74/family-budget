@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { authFetch } from '../auth/auth-fetch';
 
 interface Transaction {
   transactionId: string;
@@ -46,7 +47,7 @@ export function TransactionPickerModal({
     if (!accountId) { setTransactions([]); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${apiEndpoint}transactions?account=${encodeURIComponent(accountId)}`);
+      const res = await authFetch(`${apiEndpoint}transactions?account=${encodeURIComponent(accountId)}`);
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       setTransactions(data.transactions || []);

@@ -1,5 +1,6 @@
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback } from 'react';
+import { authFetch } from '../auth/auth-fetch';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 
 interface BankAccount {
@@ -55,7 +56,7 @@ export function Dashboard() {
 
   const fetchAccounts = useCallback(async () => {
     try {
-      const response = await fetch(`${apiEndpoint}accounts`);
+      const response = await authFetch(`${apiEndpoint}accounts`);
       if (!response.ok) throw new Error('Failed to fetch accounts');
       const data = await response.json();
       setAccounts(data.accounts || []);
@@ -66,7 +67,7 @@ export function Dashboard() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch(`${apiEndpoint}categories?isActive=true`);
+      const response = await authFetch(`${apiEndpoint}categories?isActive=true`);
       if (!response.ok) throw new Error('Failed to fetch categories');
       const data = await response.json();
       setCategories(data.categories || []);
@@ -90,7 +91,7 @@ export function Dashboard() {
       setLoading(true);
       setError('');
 
-      const response = await fetch(`${apiEndpoint}analytics?account=${accountId}`);
+      const response = await authFetch(`${apiEndpoint}analytics?account=${accountId}`);
       if (!response.ok) throw new Error('Failed to fetch analytics');
 
       const data = await response.json();

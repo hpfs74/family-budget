@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { authFetch } from '../auth/auth-fetch';
 
 export function DateTime() {
   const [dateTime, setDateTime] = useState<string>('Loading...');
@@ -10,7 +11,7 @@ export function DateTime() {
     console.log('Using API endpoint:', apiEndpoint);
     try {
       setDateTime('Loading...');
-      const response = await fetch(`${apiEndpoint}datetime`);
+      const response = await authFetch(`${apiEndpoint}datetime`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

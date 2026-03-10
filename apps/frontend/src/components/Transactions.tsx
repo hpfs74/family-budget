@@ -1,5 +1,6 @@
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { authFetch } from '../auth/auth-fetch';
 import Papa from 'papaparse';
 import { TransactionModal } from './TransactionModal';
 import { TransferModal } from './TransferModal';
@@ -118,7 +119,7 @@ export function Transactions() {
     try {
       setLoadingTransactions(true);
       setError('');
-      const response = await fetch(`${apiEndpoint}transactions?account=${encodeURIComponent(accountId)}`);
+      const response = await authFetch(`${apiEndpoint}transactions?account=${encodeURIComponent(accountId)}`);
       if (!response.ok) throw new Error('Failed to fetch transactions');
       const data = await response.json();
       setTransactions(data.transactions || []);
@@ -132,7 +133,7 @@ export function Transactions() {
 
   const fetchAccounts = useCallback(async () => {
     try {
-      const response = await fetch(`${apiEndpoint}accounts`);
+      const response = await authFetch(`${apiEndpoint}accounts`);
       if (!response.ok) throw new Error('Failed to fetch accounts');
       const data = await response.json();
       setAccounts(data.accounts || []);
@@ -143,7 +144,7 @@ export function Transactions() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch(`${apiEndpoint}categories?isActive=true`);
+      const response = await authFetch(`${apiEndpoint}categories?isActive=true`);
       if (!response.ok) throw new Error('Failed to fetch categories');
       const data = await response.json();
       setCategories(data.categories || []);
@@ -162,7 +163,7 @@ export function Transactions() {
           .filter(t => t.account === editingTransaction.account && (t.subject || t.description) === similarKey)
           .map(t => t.transactionId);
 
-        const bulkResponse = await fetch(`${apiEndpoint}transactions/bulk`, {
+        const bulkResponse = await authFetch(`${apiEndpoint}transactions/bulk`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -187,7 +188,7 @@ export function Transactions() {
 
         const method = editingTransaction ? 'PUT' : 'POST';
 
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
           method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
@@ -220,7 +221,7 @@ export function Transactions() {
 
   const handleSaveTransfer = async (transferData: TransferData) => {
     try {
-      const response = await fetch(`${apiEndpoint}transactions/transfer`, {
+      const response = await authFetch(`${apiEndpoint}transactions/transfer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -243,7 +244,7 @@ export function Transactions() {
   const handleConvertToTransfer = async (transactionId: string, toAccount: string, toTransactionId?: string) => {
     try {
       const transferCategory = categories.find(c => c.name.toLowerCase().includes('transfer'));
-      const response = await fetch(`${apiEndpoint}transactions/${transactionId}/convert-to-transfer?account=${encodeURIComponent(selectedAccount)}`, {
+      const response = await authFetch(`${apiEndpoint}transactions/${transactionId}/convert-to-transfer?account=${encodeURIComponent(selectedAccount)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -298,7 +299,7 @@ export function Transactions() {
     }
 
     try {
-      const response = await fetch(`${apiEndpoint}transactions/${deletingTransaction.transactionId}?account=${encodeURIComponent(deletingTransaction.account)}`, {
+      const response = await authFetch(`${apiEndpoint}transactions/${deletingTransaction.transactionId}?account=${encodeURIComponent(deletingTransaction.account)}`, {
         method: 'DELETE'
       });
 
@@ -513,7 +514,7 @@ export function Transactions() {
       // Process batch in parallel
       const batchPromises = batch.map(async (transaction) => {
         try {
-          const response = await fetch(`${apiEndpoint}transactions`, {
+          const response = await authFetch(`${apiEndpoint}transactions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(transaction)
