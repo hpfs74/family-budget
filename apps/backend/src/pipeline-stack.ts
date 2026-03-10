@@ -130,6 +130,7 @@ export class BudgetPipelineStack extends cdk.Stack {
         envFromCfnOutputs: {
           S3_BUCKET:          prodAppStage.bucketNameOutput!,
           CLOUDFRONT_DIST_ID: prodAppStage.distributionIdOutput!,
+          VITE_API_ENDPOINT:  prodAppStage.apiUrlOutput,
         },
         commands: [
           ...NODE24,
@@ -140,7 +141,7 @@ export class BudgetPipelineStack extends cdk.Stack {
           'export VITE_COGNITO_REGION=eu-south-1',
           'export VITE_COGNITO_REDIRECT_URI=https://budget.matteo.cool/callback',
           'export VITE_COGNITO_LOGOUT_URI=https://budget.matteo.cool/login',
-          'VITE_API_ENDPOINT=/api/ npm run build',
+          'npm run build',
           'aws s3 sync apps/frontend/dist/ s3://$S3_BUCKET/ --delete',
           'aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DIST_ID --paths "/*"',
         ],
