@@ -64,10 +64,12 @@ async function globalSetup(config: FullConfig) {
   // Navigate to app so we're on the right origin for localStorage
   await page.goto(baseURL, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
 
-  // Inject tokens into localStorage (matching keys used by auth/tokens.ts)
+  // Inject tokens into localStorage (keys must match TOKEN_KEYS in auth/tokens.ts)
   await page.evaluate(({ idToken, accessToken }) => {
-    localStorage.setItem('id_token', idToken);
-    localStorage.setItem('access_token', accessToken);
+    localStorage.setItem('budget_id_token', idToken);
+    localStorage.setItem('budget_access_token', accessToken);
+    // Set expiry 1 hour from now (in ms) so isAuthenticated() returns true
+    localStorage.setItem('budget_token_expires_at', String(Date.now() + 3600 * 1000));
   }, tokens);
 
   // Save storage state (cookies + localStorage) for reuse in all tests
