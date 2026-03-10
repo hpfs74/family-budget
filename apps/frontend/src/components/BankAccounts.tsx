@@ -6,7 +6,7 @@ interface BankAccount {
   accountName: string;
   accountNumber: string;
   bankName: string;
-  accountType: 'CHECKING' | 'SAVINGS' | 'CREDIT' | 'INVESTMENT';
+  accountType: 'CHECKING' | 'SAVINGS' | 'CREDIT' | 'INVESTMENT' | 'CASH';
   currency: 'GBP' | 'EUR';
   balance?: number;
   isActive: boolean;
@@ -138,7 +138,8 @@ export function BankAccounts() {
       CHECKING: 'bg-blue-100 text-blue-800',
       SAVINGS: 'bg-green-100 text-green-800',
       CREDIT: 'bg-orange-100 text-orange-800',
-      INVESTMENT: 'bg-purple-100 text-purple-800'
+      INVESTMENT: 'bg-purple-100 text-purple-800',
+      CASH: 'bg-yellow-100 text-yellow-800'
     };
     return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
@@ -253,6 +254,7 @@ export function BankAccounts() {
                   <option value="SAVINGS">Savings</option>
                   <option value="CREDIT">Credit</option>
                   <option value="INVESTMENT">Investment</option>
+                  <option value="CASH">💵 Contanti</option>
                 </select>
               </div>
 

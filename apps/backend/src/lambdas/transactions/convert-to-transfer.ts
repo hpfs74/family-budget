@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { GetCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, UpdateCommand, QueryCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
 import log from 'lambda-log';
 import { docClient, buildUpdateExpression } from '../../shared/db';
@@ -115,9 +115,12 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       ReturnValues: 'ALL_NEW',
     }));
 
-    // Update destination transaction → incoming (if found)
+    // Update destination transaction → incoming (if found), or create one automatically
     let destResult: Record<string, unknown> | null = null;
+    let autoCreated = false;
+
     if (dest) {
+      // Existing matching transaction found — update it
       const destUpdates: Record<string, unknown> = {
         transferId,
         transferType: 'incoming',
@@ -135,12 +138,49 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         ReturnValues: 'ALL_NEW',
       }));
       destResult = destUpdateResult.Attributes as Record<string, unknown>;
+    } else {
+      // No matching transaction — auto-create one in the destination account
+      const newTransactionId = randomUUID();
+      const newTransaction: Record<string, unknown> = {
+        transactionId: newTransactionId,
+        account: toAccount,
+        date: source['date'],
+        description: `Trasferimento da ${account}`,
+        subject: source['subject'] ?? source['description'],
+        amount: Math.abs(source['amount'] as number), // incoming = positive
+        currency: source['currency'] ?? 'EUR',
+        fee: 0,
+        transferId,
+        transferType: 'incoming',
+        relatedAccount: account,
+        relatedTransactionId: transactionId,
+        createdAt: now,
+        updatedAt: now,
+      };
+      if (categoryId) newTransaction['category'] = categoryId;
+
+      await docClient.send(new PutCommand({
+        TableName: TABLE_NAME,
+        Item: newTransaction,
+      }));
+
+      destResult = newTransaction;
+      autoCreated = true;
+
+      // Update source now knowing the new dest transactionId
+      await docClient.send(new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: { account, transactionId },
+        UpdateExpression: 'SET relatedTransactionId = :rid',
+        ExpressionAttributeValues: { ':rid': newTransactionId },
+      }));
     }
 
     return ok({
       source: srcResult.Attributes,
       destination: destResult,
-      matched: !!destResult,
+      matched: !autoCreated,
+      autoCreated,
     });
   } catch (error) {
     log.error('convertToTransfer error', { error });
