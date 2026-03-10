@@ -181,7 +181,7 @@ export function Transactions() {
       } else {
         // Regular single transaction update or creation
         const url = editingTransaction
-          ? `${apiEndpoint}transactions/${editingTransaction.transactionId}`
+          ? `${apiEndpoint}transactions/${editingTransaction.transactionId}?account=${encodeURIComponent(editingTransaction.account)}`
           : `${apiEndpoint}transactions`;
 
         const method = editingTransaction ? 'PUT' : 'POST';
