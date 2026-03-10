@@ -2,6 +2,7 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { useState, useEffect, useCallback } from 'react';
 import { authFetch } from '../auth/auth-fetch';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
+import { AnalisiTab } from './AnalisiTab';
 
 interface BankAccount {
   accountId: string;
@@ -45,6 +46,7 @@ interface Category {
 
 export function Dashboard() {
   usePageTitle('Dashboard');
+  const [activeTab, setActiveTab] = useState<'panoramica' | 'analisi'>('panoramica');
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
@@ -171,6 +173,38 @@ export function Dashboard() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="border-b mb-8" style={{ borderColor: 'var(--border-color)' }}>
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('panoramica')}
+            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'panoramica'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent hover:border-gray-300'
+            }`}
+            style={activeTab !== 'panoramica' ? { color: 'var(--text-secondary)' } : {}}
+          >
+            Panoramica
+          </button>
+          <button
+            onClick={() => setActiveTab('analisi')}
+            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'analisi'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent hover:border-gray-300'
+            }`}
+            style={activeTab !== 'analisi' ? { color: 'var(--text-secondary)' } : {}}
+          >
+            Analisi
+          </button>
+        </nav>
+      </div>
+
+      {activeTab === 'analisi' ? (
+        <AnalisiTab />
+      ) : (
+      <>
       {/* Account Selection */}
       <div className="mb-8">
         <label className="block text-sm font-medium text-gray-700 mb-2" style={{color: 'var(--text-secondary)'}}>
@@ -391,6 +425,8 @@ export function Dashboard() {
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
           <p className="text-gray-500">Unable to load analytics for the selected account.</p>
         </div>
+      )}
+      </>
       )}
     </div>
   );
