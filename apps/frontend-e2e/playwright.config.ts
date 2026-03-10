@@ -6,9 +6,11 @@ const baseURL = process.env['BASE_URL'] ?? 'http://localhost:4200';
 
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
+  globalSetup: './src/global-setup.ts',
   use: {
     baseURL,
     trace: 'on-first-retry',
+    storageState: 'playwright-auth.json',
   },
   projects: [
     {
