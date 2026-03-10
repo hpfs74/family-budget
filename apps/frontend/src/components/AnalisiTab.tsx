@@ -44,12 +44,17 @@ export function AnalisiTab() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(
     new Set()
   );
-  const [selectedMonth, setSelectedMonth] = useState(
-    new Date().getMonth() + 1
-  );
-  const [selectedYear, setSelectedYear] = useState(
-    new Date().getFullYear()
-  );
+  const _now = new Date();
+  const [fromMonth, setFromMonth] = useState(() => {
+    const d = new Date(_now.getFullYear(), _now.getMonth() - 2, 1);
+    return d.getMonth() + 1;
+  });
+  const [fromYear, setFromYear] = useState(() => {
+    const d = new Date(_now.getFullYear(), _now.getMonth() - 2, 1);
+    return d.getFullYear();
+  });
+  const [toMonth, setToMonth] = useState(_now.getMonth() + 1);
+  const [toYear, setToYear] = useState(_now.getFullYear());
   const [subView, setSubView] = useState<'categoria' | 'soggetto'>(
     'categoria'
   );
@@ -133,17 +138,25 @@ export function AnalisiTab() {
     }
   }, [accounts, fetchAllTransactions]);
 
-  // Filter transactions by month/year and selected accounts
+  // Apply quick preset (months back from today)
+  const applyPreset = useCallback((months: number) => {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+    setFromMonth(from.getMonth() + 1);
+    setFromYear(from.getFullYear());
+    setToMonth(now.getMonth() + 1);
+    setToYear(now.getFullYear());
+  }, []);
+
+  // Filter transactions by date range and selected accounts
   const filteredTransactions = useMemo(() => {
+    const fromDate = new Date(fromYear, fromMonth - 1, 1);
+    const toDate = new Date(toYear, toMonth, 0, 23, 59, 59); // last day of toMonth
     return allTransactions.filter((t) => {
       const d = new Date(t.date);
-      return (
-        d.getMonth() + 1 === selectedMonth &&
-        d.getFullYear() === selectedYear &&
-        selectedAccountIds.has(t.account)
-      );
+      return d >= fromDate && d <= toDate && selectedAccountIds.has(t.account);
     });
-  }, [allTransactions, selectedMonth, selectedYear, selectedAccountIds]);
+  }, [allTransactions, fromMonth, fromYear, toMonth, toYear, selectedAccountIds]);
 
   // Per Categoria: expenses grouped by account → category
   const categoryChartData = useMemo(() => {
@@ -598,7 +611,7 @@ export function AnalisiTab() {
         }}
       >
         <div className="flex flex-wrap gap-6">
-          {/* Date selector */}
+          {/* Date range selector */}
           <div>
             <label
               className="block text-sm font-medium mb-1"
@@ -606,41 +619,65 @@ export function AnalisiTab() {
             >
               Periodo
             </label>
-            <div className="flex gap-2">
+            {/* Preset buttons */}
+            <div className="flex gap-2 mb-2">
+              {([3, 6, 12] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => applyPreset(m)}
+                  className="px-3 py-1 rounded-md text-xs font-semibold border transition-colors"
+                  style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {m}M
+                </button>
+              ))}
+            </div>
+            {/* From / To */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Dal</span>
               <select
-                value={selectedMonth}
-                onChange={(e) =>
-                  setSelectedMonth(Number(e.target.value))
-                }
-                className="px-3 py-2 border rounded-lg text-sm"
-                style={{
-                  backgroundColor: 'var(--bg-card)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-primary)',
-                }}
+                value={fromMonth}
+                onChange={(e) => setFromMonth(Number(e.target.value))}
+                className="px-2 py-1.5 border rounded-lg text-sm"
+                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               >
                 {monthNames.map((name, i) => (
-                  <option key={i} value={i + 1}>
-                    {name}
-                  </option>
+                  <option key={i} value={i + 1}>{name}</option>
                 ))}
               </select>
               <select
-                value={selectedYear}
-                onChange={(e) =>
-                  setSelectedYear(Number(e.target.value))
-                }
-                className="px-3 py-2 border rounded-lg text-sm"
-                style={{
-                  backgroundColor: 'var(--bg-card)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-primary)',
-                }}
+                value={fromYear}
+                onChange={(e) => setFromYear(Number(e.target.value))}
+                className="px-2 py-1.5 border rounded-lg text-sm"
+                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               >
                 {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>al</span>
+              <select
+                value={toMonth}
+                onChange={(e) => setToMonth(Number(e.target.value))}
+                className="px-2 py-1.5 border rounded-lg text-sm"
+                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+              >
+                {monthNames.map((name, i) => (
+                  <option key={i} value={i + 1}>{name}</option>
+                ))}
+              </select>
+              <select
+                value={toYear}
+                onChange={(e) => setToYear(Number(e.target.value))}
+                className="px-2 py-1.5 border rounded-lg text-sm"
+                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>{y}</option>
                 ))}
               </select>
             </div>
