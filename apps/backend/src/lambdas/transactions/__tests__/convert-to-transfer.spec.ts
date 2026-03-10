@@ -1,5 +1,5 @@
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayProxyEvent } from 'aws-lambda';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -27,14 +27,17 @@ beforeEach(() => ddbMock.reset());
 describe('POST /transactions/{transactionId}/convert-to-transfer — convertToTransfer', () => {
   it('converts an existing transaction to transfer type and returns 200', async () => {
     ddbMock.on(GetCommand).resolves({ Item: existingTransaction });
+    ddbMock.on(QueryCommand).resolves({ Items: [] });
     ddbMock.on(UpdateCommand).resolves({
-      Attributes: { ...existingTransaction, type: 'transfer', toAccount: 'acc-789', updatedAt: '2024-01-15T10:00:00.000Z' },
+      Attributes: { ...existingTransaction, transferType: 'outgoing', relatedAccount: 'acc-789', updatedAt: '2024-01-15T10:00:00.000Z' },
     });
     const result = await handler(makeEvent('tx-456', { account: 'acc-123', toAccount: 'acc-789' }) as APIGatewayProxyEvent);
     expect(result.statusCode).toBe(200);
     const body = JSON.parse(result.body);
-    expect(body.type).toBe('transfer');
-    expect(body.toAccount).toBe('acc-789');
+    expect(body.source).toBeDefined();
+    expect(body.source.transferType).toBe('outgoing');
+    expect(body.source.relatedAccount).toBe('acc-789');
+    expect(body.matched).toBe(false);
   });
 
   it('returns 404 when transaction does not exist', async () => {
