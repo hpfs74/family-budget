@@ -3,9 +3,38 @@ import axios, { AxiosInstance } from 'axios';
 const baseURL = process.env['API_BASE_URL'];
 if (!baseURL) throw new Error('API_BASE_URL env var is required');
 
+/** Obtain a Cognito id_token via USER_PASSWORD_AUTH for E2E testing */
+async function getCognitoToken(): Promise<string | null> {
+  const userPoolClientId = process.env['COGNITO_CLIENT_ID'];
+  const e2eUser = process.env['E2E_COGNITO_USER'];
+  const e2ePass = process.env['E2E_COGNITO_PASS'];
+  const region = process.env['AWS_REGION'] ?? 'eu-south-1';
+  if (!userPoolClientId || !e2eUser || !e2ePass) return null;
+  const res = await axios.post(
+    `https://cognito-idp.${region}.amazonaws.com/`,
+    {
+      AuthFlow: 'USER_PASSWORD_AUTH',
+      ClientId: userPoolClientId,
+      AuthParameters: { USERNAME: e2eUser, PASSWORD: e2ePass },
+    },
+    { headers: { 'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth', 'Content-Type': 'application/x-amz-json-1.1' } }
+  );
+  return res.data?.AuthenticationResult?.IdToken ?? null;
+}
+
+let idToken: string | null = null;
+
 const api: AxiosInstance = axios.create({
   baseURL: baseURL.replace(/\/$/, ''), // strip trailing slash
   timeout: 10_000,
+});
+
+// Inject auth token before each test suite
+beforeAll(async () => {
+  idToken = await getCognitoToken();
+  if (idToken) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${idToken}`;
+  }
 });
 
 let createdAccountId: string;

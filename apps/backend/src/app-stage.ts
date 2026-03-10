@@ -14,6 +14,7 @@ export interface BudgetAppStageProps extends cdk.StageProps {
 
 export class BudgetAppStage extends cdk.Stage {
   readonly apiUrlOutput: cdk.CfnOutput;
+  readonly cognitoClientIdOutput: cdk.CfnOutput;
   readonly bucketNameOutput?: cdk.CfnOutput;
   readonly distributionIdOutput?: cdk.CfnOutput;
 
@@ -36,6 +37,7 @@ export class BudgetAppStage extends cdk.Stage {
     backendStack.addDependency(authStack);
 
     this.apiUrlOutput = backendStack.apiUrlOutput;
+    this.cognitoClientIdOutput = authStack.userPoolClientIdOutput;
 
     if (props.stackEnv === 'prod') {
       const certStack = new CertificateStack(this, 'BudgetCertificateStack', {

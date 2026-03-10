@@ -10,6 +10,7 @@ export interface AuthStackProps extends cdk.StackProps {
 export class AuthStack extends cdk.Stack {
   readonly userPool: cognito.UserPool;
   readonly userPoolClient: cognito.UserPoolClient;
+  readonly userPoolClientIdOutput: cdk.CfnOutput;
 
   constructor(scope: Construct, id: string, props: AuthStackProps) {
     super(scope, id, props);
@@ -97,7 +98,7 @@ export class AuthStack extends cdk.Stack {
       value: this.userPool.userPoolId,
     });
 
-    new cdk.CfnOutput(this, 'UserPoolClientId', {
+    this.userPoolClientIdOutput = new cdk.CfnOutput(this, 'UserPoolClientId', {
       value: this.userPoolClient.userPoolClientId,
     });
 

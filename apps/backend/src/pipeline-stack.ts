@@ -57,6 +57,22 @@ export class BudgetPipelineStack extends cdk.Stack {
         input: source,
         envFromCfnOutputs: {
           API_BASE_URL: qaAppStage.apiUrlOutput,
+          COGNITO_CLIENT_ID: qaAppStage.cognitoClientIdOutput,
+        },
+        env: {
+          AWS_REGION: 'eu-south-1',
+        },
+        buildEnvironment: {
+          environmentVariables: {
+            E2E_COGNITO_USER: {
+              value: '/budget/e2e/cognito-credentials:username',
+              type: cdk.aws_codebuild.BuildEnvironmentVariableType.SECRETS_MANAGER,
+            },
+            E2E_COGNITO_PASS: {
+              value: '/budget/e2e/cognito-credentials:password',
+              type: cdk.aws_codebuild.BuildEnvironmentVariableType.SECRETS_MANAGER,
+            },
+          },
         },
         commands: [
           ...NODE24,
