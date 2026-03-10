@@ -156,9 +156,10 @@ export function Transactions() {
     try {
       // If bulk update is requested, call the bulk update endpoint
       if (shouldBulkUpdate && editingTransaction) {
-        // Collect IDs of all similar transactions (same description + same account)
+        // Collect IDs of all similar transactions (same subject/description + same account)
+        const similarKey = editingTransaction.subject || editingTransaction.description;
         const similarIds = transactions
-          .filter(t => t.description === editingTransaction.description && t.account === editingTransaction.account)
+          .filter(t => t.account === editingTransaction.account && (t.subject || t.description) === similarKey)
           .map(t => t.transactionId);
 
         const bulkResponse = await fetch(`${apiEndpoint}transactions/bulk`, {
@@ -974,10 +975,11 @@ export function Transactions() {
         selectedAccount={selectedAccount}
         similarTransactionsCount={
           editingTransaction
-            ? transactions.filter(
-                t => t.description === editingTransaction.description &&
-                     t.transactionId !== editingTransaction.transactionId
-              ).length
+            ? transactions.filter(t => {
+                if (t.transactionId === editingTransaction.transactionId) return false;
+                const key = editingTransaction.subject || editingTransaction.description;
+                return (t.subject || t.description) === key;
+              }).length
             : 0
         }
       />
