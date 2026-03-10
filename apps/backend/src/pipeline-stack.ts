@@ -145,6 +145,8 @@ export class BudgetPipelineStack extends cdk.Stack {
         },
       },
     ]);
+    // New executions supersede (cancel) any in-progress execution — one run at a time
+    cfnPipeline.addPropertyOverride('ExecutionMode', 'SUPERSEDED');
 
     // Grant the pipeline role permission to USE the CodeConnections connection
     // (required for V2 push triggers to fire automatically on GitHub push)
