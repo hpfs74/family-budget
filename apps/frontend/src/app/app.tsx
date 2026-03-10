@@ -7,6 +7,7 @@ import { Categories } from '../components/Categories';
 import { Transactions } from '../components/Transactions';
 import { Budget } from '../components/Budget';
 import { Login } from '../pages/Login';
+import { Profile } from '../pages/Profile';
 import { Callback } from '../auth/callback';
 
 export function App() {
@@ -26,6 +27,7 @@ export function App() {
                 <Route path="/categories" element={<Categories />} />
                 <Route path="/budget" element={<Budget />} />
                 <Route path="/transactions" element={<Transactions />} />
+                <Route path="/profile" element={<Profile />} />
               </Routes>
             </ProtectedRoute>
           }

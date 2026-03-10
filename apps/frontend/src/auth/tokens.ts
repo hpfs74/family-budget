@@ -115,6 +115,19 @@ export function buildLogoutUrl(): string {
   return `https://${domain}/logout?${params}`;
 }
 
+/** Return the current access token, or null if expired/missing. */
+export function getAccessToken(): string | null {
+  if (!isAuthenticated()) return null;
+  return localStorage.getItem(TOKEN_KEYS.accessToken);
+}
+
+/** Decode a JWT payload (no signature verification). */
+export function decodeToken(token: string): Record<string, unknown> {
+  const payload = token.split('.')[1];
+  const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+  return JSON.parse(json);
+}
+
 /** Build the Cognito forgot-password URL. */
 export function buildForgotPasswordUrl(): string {
   const domain = getCognitoDomain();

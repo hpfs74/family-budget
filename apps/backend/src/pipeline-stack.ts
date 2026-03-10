@@ -107,6 +107,7 @@ export class BudgetPipelineStack extends cdk.Stack {
           // Read Cognito config from SSM and inject as VITE_ env vars for the frontend build
           'export VITE_COGNITO_DOMAIN=$(aws ssm get-parameter --name /budget/cognito/domain --query Parameter.Value --output text)',
           'export VITE_COGNITO_CLIENT_ID=$(aws ssm get-parameter --name /budget/cognito/clientId --query Parameter.Value --output text)',
+          'export VITE_COGNITO_REGION=eu-south-1',
           'export VITE_COGNITO_REDIRECT_URI=https://budget.matteo.cool/callback',
           'export VITE_COGNITO_LOGOUT_URI=https://budget.matteo.cool/login',
           'VITE_API_ENDPOINT=/api/ npm run build',

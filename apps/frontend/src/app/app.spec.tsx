@@ -38,6 +38,10 @@ jest.mock('../components/Budget', () => ({
   Budget: () => <div data-testid="budget">Mocked Budget</div>
 }));
 
+jest.mock('../pages/Profile', () => ({
+  Profile: () => <div data-testid="profile">Mocked Profile</div>
+}));
+
 
 describe('App', () => {
   it('should render successfully', () => {

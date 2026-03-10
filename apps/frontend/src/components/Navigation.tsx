@@ -54,6 +54,14 @@ export function Navigation() {
               </Link>
             </li>
           </ul>
+          <Link
+            to="/profile"
+            className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 hover:bg-gray-600 no-underline"
+            style={{ color: 'var(--nav-text)' }}
+            title="Profilo"
+          >
+            Profilo
+          </Link>
           <button
             onClick={toggle}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-200 hover:bg-gray-600"
